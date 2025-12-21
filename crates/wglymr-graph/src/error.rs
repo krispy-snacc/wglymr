@@ -21,4 +21,7 @@ pub enum GraphError {
 
     #[error("Input socket already has an incoming connection")]
     InputAlreadyConnected,
+
+    #[error("Graph contains cycles, cannot compute topological order")]
+    CycleDetected,
 }

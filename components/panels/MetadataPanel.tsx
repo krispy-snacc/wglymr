@@ -16,7 +16,7 @@ export function MetadataPanel() {
                         type="text"
                         value={title}
                         onChange={(e) => documentStore.setState({ title: e.target.value })}
-                        className="w-full px-3 py-2 bg-zinc-900/50 border border-white/[0.08] rounded text-sm text-white placeholder:text-gray-600 focus:outline-none focus:bg-zinc-900/70 focus:border-white/20 transition-all"
+                        className="w-full px-3 py-2 bg-zinc-900/50 border border-white/8 rounded text-sm text-white placeholder:text-gray-600 focus:outline-none focus:bg-zinc-900/70 focus:border-white/20 transition-all"
                         placeholder="Untitled Shader"
                     />
                 </div>
@@ -27,14 +27,14 @@ export function MetadataPanel() {
                     <textarea
                         value={description}
                         onChange={(e) => documentStore.setState({ description: e.target.value })}
-                        className="w-full px-3 py-2 bg-zinc-900/50 border border-white/[0.08] rounded text-sm text-white placeholder:text-gray-600 focus:outline-none focus:bg-zinc-900/70 focus:border-white/20 transition-all resize-none"
+                        className="w-full px-3 py-2 bg-zinc-900/50 border border-white/8rounded text-sm text-white placeholder:text-gray-600 focus:outline-none focus:bg-zinc-900/70 focus:border-white/20 transition-all resize-none"
                         placeholder="Add a description..."
                         rows={4}
                     />
                 </div>
 
                 {/* Visibility */}
-                <div className="flex items-center justify-between p-3 rounded bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.03] hover:border-white/[0.08] transition-colors">
+                <div className="flex items-center justify-between p-3 rounded bg-white/2 border border-white/6 hover:bg-white/3 hover:border-white/8 transition-colors">
                     <div className="flex flex-col gap-1">
                         <label className="text-xs font-medium text-gray-300">Public</label>
                         <span className="text-[10px] text-gray-600">Make this shader visible to others</span>

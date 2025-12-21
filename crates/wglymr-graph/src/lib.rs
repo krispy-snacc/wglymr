@@ -7,11 +7,13 @@
 //! - Strong type safety for socket connections
 //! - Serializable graph structure
 //! - Explicit error handling
+//! - Read-only graph analysis passes
 
 mod error;
 mod graph;
 mod link;
 mod node;
+pub mod passes;
 mod socket;
 
 #[cfg(test)]
@@ -21,4 +23,5 @@ pub use error::GraphError;
 pub use graph::Graph;
 pub use link::{Link, LinkId};
 pub use node::{MathOp, Node, NodeId, NodeKind};
+pub use passes::{build_graph_view, detect_cycles, reachable_from, topological_sort, GraphView};
 pub use socket::{Socket, SocketDirection, SocketId, ValueType};

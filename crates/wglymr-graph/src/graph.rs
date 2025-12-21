@@ -160,6 +160,14 @@ impl Graph {
         self.links.values().filter(move |link| link.from == socket)
     }
 
+    pub fn nodes(&self) -> impl Iterator<Item = &Node> {
+        self.nodes.values()
+    }
+
+    pub fn node_ids(&self) -> impl Iterator<Item = NodeId> + '_ {
+        self.nodes.keys().copied()
+    }
+
     #[cfg(feature = "debug-graph")]
     pub fn check_invariants(&self) -> Result<(), GraphError> {
         for socket in self.sockets.values() {

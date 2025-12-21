@@ -159,14 +159,22 @@ pub fn reachable_from(graph: &Graph, roots: &[NodeId]) -> HashSet<NodeId> {
 #[derive(Debug)]
 pub struct GraphView<'a> {
     pub graph: &'a Graph,
-    pub topo_order: Vec<NodeId>,
+    pub roots: Vec<NodeId>,
     pub reachable: HashSet<NodeId>,
+    pub topo_order: Vec<NodeId>,
 }
 
 pub fn build_graph_view<'a>(
     graph: &'a Graph,
     roots: &[NodeId],
 ) -> Result<GraphView<'a>, GraphError> {
+    // Validate that all root NodeIds exist
+    for &root in roots {
+        if graph.node(root).is_none() {
+            return Err(GraphError::NodeNotFound { node: root });
+        }
+    }
+
     let cycles = detect_cycles(graph);
     if !cycles.is_empty() {
         return Err(GraphError::CycleDetected);
@@ -177,7 +185,8 @@ pub fn build_graph_view<'a>(
 
     Ok(GraphView {
         graph,
-        topo_order,
+        roots: roots.to_vec(),
         reachable,
+        topo_order,
     })
 }

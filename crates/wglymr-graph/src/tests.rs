@@ -300,7 +300,7 @@ mod tests {
 
         use crate::{
             passes::{build_graph_view, detect_cycles, reachable_from, topological_sort},
-            Graph, GraphError, NodeKind, ValueType,
+            Graph, GraphError, NodeId, NodeKind, ValueType,
         };
 
         #[test]
@@ -633,6 +633,116 @@ mod tests {
 
             let result = build_graph_view(&graph, &[node1]);
             assert!(matches!(result, Err(GraphError::CycleDetected)));
+        }
+
+        #[test]
+        fn test_multiple_roots_work_correctly() {
+            let mut graph = Graph::new();
+
+            let node1 = graph.add_node(
+                NodeKind::Generic("Node1".to_string()),
+                Vec2::ZERO,
+                vec![],
+                vec![("out".to_string(), ValueType::Float)],
+            );
+
+            let node2 = graph.add_node(
+                NodeKind::Generic("Node2".to_string()),
+                Vec2::ZERO,
+                vec![("in".to_string(), ValueType::Float)],
+                vec![("out".to_string(), ValueType::Float)],
+            );
+
+            let node3 = graph.add_node(
+                NodeKind::Generic("Node3".to_string()),
+                Vec2::ZERO,
+                vec![("in".to_string(), ValueType::Float)],
+                vec![],
+            );
+
+            let node4 = graph.add_node(
+                NodeKind::Generic("Node4".to_string()),
+                Vec2::ZERO,
+                vec![],
+                vec![("out".to_string(), ValueType::Float)],
+            );
+
+            let node5 = graph.add_node(
+                NodeKind::Generic("Node5".to_string()),
+                Vec2::ZERO,
+                vec![("in".to_string(), ValueType::Float)],
+                vec![],
+            );
+
+            let out1 = graph.node(node1).unwrap().outputs[0];
+            let in2 = graph.node(node2).unwrap().inputs[0];
+            let out2 = graph.node(node2).unwrap().outputs[0];
+            let in3 = graph.node(node3).unwrap().inputs[0];
+            let out4 = graph.node(node4).unwrap().outputs[0];
+            let in5 = graph.node(node5).unwrap().inputs[0];
+
+            graph.connect(out1, in2).unwrap();
+            graph.connect(out2, in3).unwrap();
+            graph.connect(out4, in5).unwrap();
+
+            let view = build_graph_view(&graph, &[node3, node5]).unwrap();
+
+            assert_eq!(view.roots.len(), 2);
+            assert!(view.roots.contains(&node3));
+            assert!(view.roots.contains(&node5));
+
+            assert_eq!(view.reachable.len(), 5);
+            assert!(view.reachable.contains(&node1));
+            assert!(view.reachable.contains(&node2));
+            assert!(view.reachable.contains(&node3));
+            assert!(view.reachable.contains(&node4));
+            assert!(view.reachable.contains(&node5));
+        }
+
+        #[test]
+        fn test_empty_roots_results_in_empty_reachable_set() {
+            let mut graph = Graph::new();
+
+            let node1 = graph.add_node(
+                NodeKind::Generic("Node1".to_string()),
+                Vec2::ZERO,
+                vec![],
+                vec![("out".to_string(), ValueType::Float)],
+            );
+
+            let node2 = graph.add_node(
+                NodeKind::Generic("Node2".to_string()),
+                Vec2::ZERO,
+                vec![("in".to_string(), ValueType::Float)],
+                vec![],
+            );
+
+            let out1 = graph.node(node1).unwrap().outputs[0];
+            let in2 = graph.node(node2).unwrap().inputs[0];
+            graph.connect(out1, in2).unwrap();
+
+            let view = build_graph_view(&graph, &[]).unwrap();
+
+            assert_eq!(view.roots.len(), 0);
+            assert_eq!(view.reachable.len(), 0);
+            assert_eq!(view.topo_order.len(), 2);
+        }
+
+        #[test]
+        fn test_invalid_root_node_returns_error() {
+            let mut graph = Graph::new();
+
+            let node1 = graph.add_node(
+                NodeKind::Generic("Node1".to_string()),
+                Vec2::ZERO,
+                vec![],
+                vec![("out".to_string(), ValueType::Float)],
+            );
+
+            let invalid_node = NodeId(9999);
+
+            let result = build_graph_view(&graph, &[node1, invalid_node]);
+            assert!(matches!(result, Err(GraphError::NodeNotFound { .. })));
         }
     }
 }

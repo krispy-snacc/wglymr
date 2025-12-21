@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { THEME_COLOR } from "@/app/theme";
+import { BACKGROUND_COLOR } from "@/app/theme";
 
 interface LoadingScreenProps {
     isLoading: boolean;
@@ -25,7 +25,7 @@ export function LoadingScreen({ isLoading }: LoadingScreenProps) {
         <div
             className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-500 ${isLoading ? "opacity-100" : "opacity-0"
                 }`}
-            style={{ background: THEME_COLOR }}
+            style={{ background: BACKGROUND_COLOR }}
         >
             <div className="flex flex-col items-center gap-6">
                 {/* Logo */}

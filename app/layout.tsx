@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AnimatedBackground } from "@/components/layout/AnimatedBackground";
-import { THEME_COLOR } from "./theme";
+import { BACKGROUND_COLOR, THEME } from "./theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: THEME_COLOR,
+  themeColor: BACKGROUND_COLOR,
 };
 
 export default function RootLayout({
@@ -38,7 +38,22 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/wglymr_logo_short.svg" type="image/svg+xml" />
-        <meta name="theme-color" content={THEME_COLOR} />
+        <meta name="theme-color" content={BACKGROUND_COLOR} />
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            :root {
+              --background: ${THEME.background};
+              --foreground: ${THEME.foreground};
+              --accent: ${THEME.accent};
+              --accent-hover: ${THEME.accentHover};
+              --border: ${THEME.border};
+              --border-hover: ${THEME.borderHover};
+              --panel-bg: ${THEME.panelBg};
+              --text-secondary: ${THEME.textSecondary};
+              --text-muted: ${THEME.textMuted};
+            }
+          `
+        }} />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -55,7 +70,7 @@ export default function RootLayout({
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        style={{ backgroundColor: THEME_COLOR }}
+        style={{ backgroundColor: BACKGROUND_COLOR }}
         suppressHydrationWarning
       >
         <AnimatedBackground />

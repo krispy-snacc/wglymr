@@ -11,16 +11,26 @@ interface PreviewPanelProps {
 export function PreviewPanel({ viewId }: PreviewPanelProps) {
     const [isPlaying, setIsPlaying] = useState(true);
     const [fps, setFps] = useState(60);
+    const [time, setTime] = useState(0);
     const [resolution, setResolution] = useState({ width: 896, height: 504 });
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const startTimeRef = useRef(Date.now());
 
-    // Mock FPS counter
+    // Mock FPS counter and time
     useEffect(() => {
         if (!isPlaying) return;
         const interval = setInterval(() => {
             setFps(Math.floor(58 + Math.random() * 4));
+            setTime((Date.now() - startTimeRef.current) / 1000);
         }, 100);
         return () => clearInterval(interval);
+    }, [isPlaying]);
+
+    // Reset time when play/pause
+    useEffect(() => {
+        if (isPlaying) {
+            startTimeRef.current = Date.now() - time * 1000;
+        }
     }, [isPlaying]);
 
     // Update resolution on resize
@@ -70,42 +80,47 @@ export function PreviewPanel({ viewId }: PreviewPanelProps) {
             </ContextMenu.Root>
 
             {/* Control Bar */}
-            <div className="shrink-0 bg-zinc-900/80 backdrop-blur-sm border-t border-white/10 px-2 py-1.5 flex items-center justify-between gap-2">
+            <div className="shrink-0 bg-zinc-900/60 backdrop-blur-sm border-t border-white/6 px-2 py-1 flex items-center justify-between gap-3">
                 {/* Left: Control Buttons */}
                 <div className="flex gap-1">
                     <button
                         onClick={() => setIsPlaying(!isPlaying)}
-                        className="border border-white/10 hover:border-accent hover:bg-accent/10 rounded p-1 text-gray-300 hover:text-white transition-colors"
+                        className="border border-white/8 hover:border-accent/60 hover:bg-accent/5 rounded p-1.5 text-gray-400 hover:text-white transition-colors cursor-pointer"
                         title={isPlaying ? "Pause" : "Play"}
                     >
-                        {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                        {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                     </button>
                     <button
-                        onClick={() => console.log("Reset view")}
-                        className="border border-white/10 hover:border-accent hover:bg-accent/10 rounded p-1 text-gray-300 hover:text-white transition-colors"
-                        title="Reset"
+                        onClick={() => { setTime(0); startTimeRef.current = Date.now(); }}
+                        className="border border-white/8 hover:border-accent/60 hover:bg-accent/5 rounded p-1.5 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                        title="Reset Time"
                     >
-                        <RotateCcw className="w-3 h-3" />
+                        <RotateCcw className="w-3.5 h-3.5" />
                     </button>
                     <button
                         onClick={() => console.log("Fullscreen")}
-                        className="border border-white/10 hover:border-accent hover:bg-accent/10 rounded p-1 text-gray-300 hover:text-white transition-colors"
+                        className="border border-white/8 hover:border-accent/60 hover:bg-accent/5 rounded p-1.5 text-gray-400 hover:text-white transition-colors cursor-pointer"
                         title="Fullscreen"
                     >
-                        <Maximize2 className="w-3 h-3" />
+                        <Maximize2 className="w-3.5 h-3.5" />
                     </button>
                 </div>
 
                 {/* Right: Stats */}
-                <div className="flex items-center gap-2 sm:gap-3 font-mono text-[10px] text-gray-400">
-                    <div className="flex items-center gap-1">
-                        <span className="text-gray-500 hidden sm:inline">FPS</span>
-                        <span className="text-green-400 font-medium">{fps}</span>
+                <div className="flex items-center gap-2 sm:gap-3 font-mono text-[10px] font-medium text-gray-500">
+                    <div className="flex items-center gap-1.5">
+                        <span className="hidden sm:inline">Time</span>
+                        <span className="text-accent/90">{time.toFixed(2)}s</span>
                     </div>
-                    <div className="h-2.5 w-px bg-white/10" />
-                    <div className="flex items-center gap-1">
-                        <span className="text-gray-500 hidden sm:inline">Resolution</span>
-                        <span className="text-gray-300">{resolution.width}×{resolution.height}</span>
+                    <div className="h-3 w-px bg-white/8" />
+                    <div className="flex items-center gap-1.5">
+                        <span className="hidden sm:inline">FPS</span>
+                        <span className="text-green-400/80">{fps}</span>
+                    </div>
+                    <div className="h-3 w-px bg-white/8" />
+                    <div className="flex items-center gap-1.5">
+                        <span className="hidden sm:inline">Res</span>
+                        <span className="text-gray-400">{resolution.width}×{resolution.height}</span>
                     </div>
                 </div>
             </div>

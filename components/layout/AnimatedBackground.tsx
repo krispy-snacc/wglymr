@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { BACKGROUND_COLOR } from "@/app/theme";
 
 export function AnimatedBackground() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -38,12 +39,12 @@ export function AnimatedBackground() {
             uniform vec2 resolution;
             uniform float time;
             
-            // Theme colors - more vibrant and varied
-            const vec3 accent = vec3(1.0, 0.361, 0.541); // #ff5c8a pink
-            const vec3 purple = vec3(0.6, 0.3, 0.9); // purple
-            const vec3 blue = vec3(0.3, 0.5, 1.0); // blue
-            const vec3 orange = vec3(1.0, 0.5, 0.2); // orange
-            const vec3 dark = vec3(0.02, 0.02, 0.04); // very dark base
+            // Theme colors (from theme.ts: accent #ff5c8a, background #0d0410)
+            const vec3 accent = vec3(1.0, 0.361, 0.541); // accent pink
+            const vec3 purple = vec3(0.6, 0.3, 0.9); 
+            const vec3 blue = vec3(0.3, 0.5, 1.0); 
+            const vec3 orange = vec3(1.0, 0.5, 0.2); 
+            const vec3 dark = vec3(0.051, 0.016, 0.063); // background color
             
             // Metaball function
             float metaball(vec2 p, vec2 center, float radius) {
@@ -205,7 +206,7 @@ export function AnimatedBackground() {
             ref={canvasRef}
             className="fixed inset-0 w-full h-full"
             style={{
-                background: "#0a0a14",
+                background: BACKGROUND_COLOR,
                 zIndex: -10,
                 pointerEvents: "none"
             }}

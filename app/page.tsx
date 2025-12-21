@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 import { Navbar } from "@/components/navbar/Navbar";
 import { Sparkles, Workflow, Zap, Code2, Cpu } from "lucide-react";
 
@@ -89,9 +92,15 @@ function FeatureCard({
   title: string;
   description: string;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <div className="group p-4 sm:p-5 rounded-lg border border-white/10 bg-white/5 hover:border-accent/50 hover:bg-white/10 transition-all">
-      <div className="flex items-start gap-3">
+    <div
+      className="group relative p-4 sm:p-5 rounded-lg border border-white/10 bg-white/5 hover:border-accent/50 hover:bg-white/10 transition-all overflow-hidden"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="relative z-10 flex items-start gap-3">
         <div className="shrink-0 p-1.5 rounded-lg bg-accent/10 group-hover:bg-accent/20 transition-colors">
           {icon}
         </div>

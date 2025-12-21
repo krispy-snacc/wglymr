@@ -1,9 +1,18 @@
 @import "tailwindcss";
 
 :root {
-    --background: #1a0a14;
+    /* Theme colors - dynamically injected from theme.ts via layout.tsx */
+    /* Default fallback values */
+    --background: #0d0410;
     --foreground: #ffffff;
     --accent: #ff5c8a;
+    --accent-hover: #ff7ca3;
+    --border: #ffffff1a;
+    --border-hover: #ffffff33;
+    --panel-bg: #18090fe6;
+    --text-secondary: #d1d5db;
+    --text-muted: #9ca3af;
+
     /* Mobile viewport height fix */
     --vh: 1vh;
 }
@@ -17,6 +26,7 @@
 }
 
 body {
+    background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans), system-ui, sans-serif;
 }
@@ -84,4 +94,206 @@ body {
 
 *::-webkit-scrollbar-thumb:active {
     background-color: rgba(255, 255, 255, 0.4);
+}
+/* Golden Layout - Blender-style Theme Overrides */
+
+.lm_header {
+    background: rgba(255, 255, 255, 0.015);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    height: 26px;
+    user-select: none;
+}
+
+.lm_header .lm_tabs {
+    display: flex;
+    gap: 1px;
+    padding: 2px 3px 0 0;
+    align-items: center;
+}
+
+.lm_header .lm_tabs .lm_add_tab_btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 16px;
+    font-weight: 300;
+    padding: 0;
+    margin: 0 4px 0 4px;
+    width: 16px;
+    height: 14px;
+    padding-bottom: 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    line-height: 1;
+}
+
+.lm_header .lm_tabs .lm_add_tab_btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.lm_tab {
+    background: transparent;
+    border: none;
+    border-radius: 6px 6px 0 0;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 11px;
+    font-weight: 400;
+    padding: 3px 10px;
+    margin: 0;
+    transition: all 0.12s ease;
+    position: relative;
+}
+
+.lm_tab:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.lm_tab.lm_active {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.lm_tab.lm_active::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 2px;
+    right: 2px;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 1px;
+}
+
+.lm_tab .lm_close_tab {
+    width: 12px;
+    height: 12px;
+    opacity: 0.5;
+    transition: opacity 0.12s ease;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lm_tab .lm_close_tab::before {
+    content: "×";
+    font-size: 16px;
+    line-height: 1;
+    color: currentColor;
+}
+
+.lm_header .lm_tab .lm_close_tab {
+    right: 4px !important;
+}
+
+.lm_tab:hover .lm_close_tab {
+    opacity: 0.8;
+}
+
+.lm_tab.lm_active .lm_close_tab {
+    opacity: 0.9;
+}
+
+.lm_content {
+    background: #0d0410;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0 6px 6px 6px;
+    overflow: hidden;
+}
+
+.lm_splitter {
+    background: rgba(255, 255, 255, 0.03);
+    transition: background 0.12s ease;
+}
+
+.lm_splitter:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.lm_header .lm_controls [class^="lm_"] {
+    opacity: 0.5;
+    transition: opacity 0.12s ease;
+}
+
+.lm_header .lm_controls > li {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+}
+
+.lm_header .lm_controls .lm_close {
+    position: relative;
+}
+
+.lm_header .lm_controls .lm_close::before {
+    content: "×";
+    font-size: 18px;
+    line-height: 1;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.lm_header .lm_controls .lm_maximise {
+    position: relative;
+}
+
+.lm_header .lm_controls .lm_maximise::before {
+    content: "□";
+    font-size: 14px;
+    line-height: 1;
+    position: absolute;
+    top: 43%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.lm_maximised .lm_header .lm_controls .lm_maximise::before {
+    content: "_";
+    font-size: 14px;
+}
+
+.lm_header .lm_controls .lm_popout {
+    display: none !important;
+}
+
+.lm_header .lm_controls > [class^="lm_"]:hover {
+    opacity: 0.85;
+}
+
+.lm_maximised .lm_header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lm_popin {
+    opacity: 0.5;
+}
+
+.lm_popin:hover {
+    opacity: 0.9;
+}
+
+/* Drop indicators for drag-and-drop */
+.lm_dropTargetIndicator {
+    box-shadow: inset 0 0 0 2px var(--accent) !important;
+    background: rgba(139, 92, 246, 0.1) !important;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.lm_transition_indicator {
+    background: var(--accent) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }

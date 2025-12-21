@@ -1,6 +1,7 @@
-const { THEME } = require("./app/theme.ts");
+import type { Config } from "tailwindcss";
+import { THEME } from "./app/theme";
 
-module.exports = {
+const config: Config = {
     content: [
         "./app/**/*.{js,ts,jsx,tsx}",
         "./components/**/*.{js,ts,jsx,tsx}",
@@ -15,3 +16,5 @@ module.exports = {
     },
     plugins: [],
 };
+
+export default config;

@@ -1,4 +1,4 @@
-use crate::ir::{BinaryOp, IrInst, IrProgram, IrType, Literal, ValueId};
+use crate::ir::{BinaryOp, IrInst, IrProgram, IrType, Literal};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -94,6 +94,7 @@ fn format_binary_op(op: BinaryOp) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ValueId;
 
     #[test]
     fn test_pretty_print_simple_program() {

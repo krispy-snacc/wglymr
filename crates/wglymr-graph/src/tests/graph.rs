@@ -266,6 +266,74 @@ fn test_stable_ids_not_reused() {
 }
 
 #[test]
+fn test_add_node_with_optional_input() {
+    use crate::{InputDef, Literal};
+
+    let mut graph = Graph::new();
+
+    let node_id = graph.add_node_with_config(
+        NodeKind::Generic("TestNode".to_string()),
+        Vec2::ZERO,
+        vec![InputDef::optional(
+            "input".to_string(),
+            ValueType::Float,
+            Literal::Float(1.0),
+        )],
+        vec![("out".to_string(), ValueType::Float)],
+    );
+
+    let node = graph.node(node_id).unwrap();
+    assert_eq!(node.inputs.len(), 1);
+
+    let input_socket = graph.socket(node.inputs[0]).unwrap();
+    let config = input_socket.input_config.as_ref().unwrap();
+    assert!(config.optional);
+    assert!(config.default.is_some());
+    match config.default.as_ref().unwrap() {
+        Literal::Float(v) => assert_eq!(*v, 1.0),
+        _ => panic!("expected Float literal"),
+    }
+}
+
+#[test]
+fn test_add_node_with_required_input() {
+    use crate::InputDef;
+
+    let mut graph = Graph::new();
+
+    let node_id = graph.add_node_with_config(
+        NodeKind::Generic("TestNode".to_string()),
+        Vec2::ZERO,
+        vec![InputDef::required("input", ValueType::Float)],
+        vec![("out".to_string(), ValueType::Float)],
+    );
+
+    let node = graph.node(node_id).unwrap();
+    let input_socket = graph.socket(node.inputs[0]).unwrap();
+    let config = input_socket.input_config.as_ref().unwrap();
+    assert!(!config.optional);
+    assert!(config.default.is_none());
+}
+
+#[test]
+fn test_add_node_simple_creates_required_config() {
+    let mut graph = Graph::new();
+
+    let node_id = graph.add_node(
+        NodeKind::Generic("TestNode".to_string()),
+        Vec2::ZERO,
+        vec![("input".to_string(), ValueType::Float)],
+        vec![],
+    );
+
+    let node = graph.node(node_id).unwrap();
+    let input_socket = graph.socket(node.inputs[0]).unwrap();
+    let config = input_socket.input_config.as_ref().unwrap();
+    assert!(!config.optional);
+    assert!(config.default.is_none());
+}
+
+#[test]
 #[cfg(feature = "debug-graph")]
 fn test_invariant_checker_valid_graph() {
     let mut graph = Graph::new();

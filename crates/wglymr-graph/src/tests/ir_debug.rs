@@ -219,3 +219,5 @@ fn pretty_print_all_binary_ops() {
     assert!(output.contains("mul"));
     assert!(output.contains("div"));
 }
+
+

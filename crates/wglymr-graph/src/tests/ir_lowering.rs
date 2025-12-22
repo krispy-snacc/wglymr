@@ -196,3 +196,129 @@ fn test_value_ids_reused_correctly() {
 
     assert_eq!(program.instructions.len(), 1);
 }
+
+#[test]
+fn test_optional_input_emits_constant_in_ir() {
+    use crate::{InputDef, Literal};
+
+    let mut graph = Graph::new();
+
+    let node = graph.add_node_with_config(
+        NodeKind::Generic("pass".to_string()),
+        Vec2::ZERO,
+        vec![InputDef::optional("in", ValueType::Float, Literal::Float(42.0))],
+        vec![("out".to_string(), ValueType::Float)],
+    );
+
+    let view = build_graph_view(&graph, &[node]).unwrap();
+    let types = propagate_types(&view).unwrap();
+    let program = lower_to_ir(&view, &types).unwrap();
+
+    assert_eq!(program.instructions.len(), 1);
+    match &program.instructions[0] {
+        IrInst::Constant { value, ty } => {
+            assert_eq!(*ty, IrType::Float);
+            match value {
+                Literal::Float(v) => assert_eq!(*v, 42.0),
+                _ => panic!("expected Float literal"),
+            }
+        }
+        _ => panic!("expected Constant instruction"),
+    }
+}
+
+#[test]
+fn test_math_with_optional_inputs_emits_constants() {
+    use crate::{InputDef, Literal};
+
+    let mut graph = Graph::new();
+
+    let add_node = graph.add_node_with_config(
+        NodeKind::Math(MathOp::Add),
+        Vec2::ZERO,
+        vec![
+            InputDef::optional("a", ValueType::Float, Literal::Float(10.0)),
+            InputDef::optional("b", ValueType::Float, Literal::Float(20.0)),
+        ],
+        vec![("result".to_string(), ValueType::Float)],
+    );
+
+    let view = build_graph_view(&graph, &[add_node]).unwrap();
+    let types = propagate_types(&view).unwrap();
+    let program = lower_to_ir(&view, &types).unwrap();
+
+    assert_eq!(program.instructions.len(), 3);
+
+    match &program.instructions[0] {
+        IrInst::Constant { value: Literal::Float(v), ty: IrType::Float } => assert_eq!(*v, 10.0),
+        _ => panic!("expected first constant 10.0"),
+    }
+
+    match &program.instructions[1] {
+        IrInst::Constant { value: Literal::Float(v), ty: IrType::Float } => assert_eq!(*v, 20.0),
+        _ => panic!("expected second constant 20.0"),
+    }
+
+    match &program.instructions[2] {
+        IrInst::Binary { op, lhs, rhs, ty } => {
+            assert_eq!(*op, BinaryOp::Add);
+            assert_eq!(*ty, IrType::Float);
+            assert_eq!(lhs.0, 0);
+            assert_eq!(rhs.0, 1);
+        }
+        _ => panic!("expected Binary instruction"),
+    }
+}
+
+#[test]
+fn test_mixed_connected_and_optional_inputs() {
+    use crate::{InputDef, Literal};
+
+    let mut graph = Graph::new();
+
+    let value_node = graph.add_node(
+        NodeKind::Value(ValueType::Float),
+        Vec2::ZERO,
+        vec![],
+        vec![("out".to_string(), ValueType::Float)],
+    );
+
+    let add_node = graph.add_node_with_config(
+        NodeKind::Math(MathOp::Add),
+        Vec2::new(100.0, 0.0),
+        vec![
+            InputDef::required("a", ValueType::Float),
+            InputDef::optional("b", ValueType::Float, Literal::Float(5.0)),
+        ],
+        vec![("result".to_string(), ValueType::Float)],
+    );
+
+    let value_out = graph.node(value_node).unwrap().outputs[0];
+    let add_in_a = graph.node(add_node).unwrap().inputs[0];
+
+    graph.connect(value_out, add_in_a).unwrap();
+
+    let view = build_graph_view(&graph, &[add_node]).unwrap();
+    let types = propagate_types(&view).unwrap();
+    let program = lower_to_ir(&view, &types).unwrap();
+
+    assert_eq!(program.instructions.len(), 3);
+
+    match &program.instructions[0] {
+        IrInst::Constant { ty: IrType::Float, .. } => {}
+        _ => panic!("expected value node constant"),
+    }
+
+    match &program.instructions[1] {
+        IrInst::Constant { value: Literal::Float(v), ty: IrType::Float } => assert_eq!(*v, 5.0),
+        _ => panic!("expected default constant 5.0"),
+    }
+
+    match &program.instructions[2] {
+        IrInst::Binary { op: BinaryOp::Add, lhs, rhs, .. } => {
+            assert_eq!(lhs.0, 0);
+            assert_eq!(rhs.0, 1);
+        }
+        _ => panic!("expected Binary instruction"),
+    }
+}

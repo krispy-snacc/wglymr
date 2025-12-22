@@ -119,3 +119,5 @@ fn test_color_type_emits_as_vec4() {
     assert!(wgsl.contains("fn main() -> vec4<f32>"));
     assert!(wgsl.contains("let v0: vec4<f32> = vec4<f32>(1, 0.5, 0, 1);"));
 }
+
+

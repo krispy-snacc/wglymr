@@ -73,6 +73,8 @@ pub fn unify(types: &[ValueType]) -> Result<ValueType, TypeError> {
     Ok(first)
 }
 
+use crate::SocketId;
+
 #[derive(Error, Debug)]
 pub enum TypeError {
     #[error("type mismatch: expected {expected:?}, found {found:?}")]
@@ -83,4 +85,17 @@ pub enum TypeError {
 
     #[error("cannot unify empty type set")]
     EmptyUnification,
+
+    #[error("optional input socket {socket:?} missing default value")]
+    OptionalInputMissingDefault { socket: SocketId },
+
+    #[error("default literal type mismatch for socket {socket:?}: expected {expected:?}, found {found:?}")]
+    DefaultLiteralTypeMismatch {
+        socket: SocketId,
+        expected: ValueType,
+        found: ValueType,
+    },
+
+    #[error("required input socket {socket:?} is not connected")]
+    UnconnectedRequiredInput { socket: SocketId },
 }

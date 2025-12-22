@@ -4,7 +4,8 @@ use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    GraphError, Link, LinkId, Node, NodeId, NodeKind, Socket, SocketDirection, SocketId, ValueType,
+    GraphError, InputSocketConfig, Link, LinkId, Node, NodeId, NodeKind, Socket, SocketDirection,
+    SocketId, ValueType,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,6 +17,34 @@ pub struct Graph {
     next_node_id: u64,
     next_socket_id: u64,
     next_link_id: u64,
+}
+
+pub struct InputDef {
+    pub name: String,
+    pub value_type: ValueType,
+    pub config: InputSocketConfig,
+}
+
+impl InputDef {
+    pub fn required(name: impl Into<String>, value_type: ValueType) -> Self {
+        Self {
+            name: name.into(),
+            value_type,
+            config: InputSocketConfig::required(),
+        }
+    }
+
+    pub fn optional(
+        name: impl Into<String>,
+        value_type: ValueType,
+        default: crate::Literal,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            value_type,
+            config: InputSocketConfig::optional_with_default(default),
+        }
+    }
 }
 
 impl Graph {
@@ -37,13 +66,27 @@ impl Graph {
         inputs: Vec<(String, ValueType)>,
         outputs: Vec<(String, ValueType)>,
     ) -> NodeId {
+        let input_defs: Vec<InputDef> = inputs
+            .into_iter()
+            .map(|(name, value_type)| InputDef::required(name, value_type))
+            .collect();
+        self.add_node_with_config(kind, position, input_defs, outputs)
+    }
+
+    pub fn add_node_with_config(
+        &mut self,
+        kind: NodeKind,
+        position: Vec2,
+        inputs: Vec<InputDef>,
+        outputs: Vec<(String, ValueType)>,
+    ) -> NodeId {
         let node_id = NodeId(self.next_node_id);
         self.next_node_id += 1;
 
         let mut input_ids = Vec::new();
         let mut output_ids = Vec::new();
 
-        for (name, value_type) in inputs {
+        for input_def in inputs {
             let socket_id = SocketId(self.next_socket_id);
             self.next_socket_id += 1;
 
@@ -53,8 +96,9 @@ impl Graph {
                     id: socket_id,
                     node: node_id,
                     direction: SocketDirection::Input,
-                    value_type,
-                    name,
+                    value_type: input_def.value_type,
+                    name: input_def.name,
+                    input_config: Some(input_def.config),
                 },
             );
             input_ids.push(socket_id);
@@ -72,6 +116,7 @@ impl Graph {
                     direction: SocketDirection::Output,
                     value_type,
                     name,
+                    input_config: None,
                 },
             );
             output_ids.push(socket_id);

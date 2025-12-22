@@ -26,14 +26,14 @@ pub mod wgsl;
 mod tests;
 
 pub use error::GraphError;
-pub use graph::Graph;
+pub use graph::{Graph, InputDef};
 pub use ir::{BinaryOp, IrInst, IrProgram, IrType, Literal, ValueId};
 pub use ir_debug::{pretty_print, validate_ir, IrValidationError};
 pub use ir_lowering::{lower_to_ir, IrLoweringError};
 pub use link::{Link, LinkId};
 pub use node::{MathOp, Node, NodeId, NodeKind};
 pub use passes::{build_graph_view, detect_cycles, reachable_from, topological_sort, GraphView};
-pub use socket::{Socket, SocketDirection, SocketId};
+pub use socket::{InputSocketConfig, Socket, SocketDirection, SocketId};
 pub use type_propagation::{propagate_types, TypeMap};
 pub use types::{are_compatible, unify, TypeError, ValueType};
 pub use wgsl::emit_wgsl;

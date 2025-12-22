@@ -71,12 +71,12 @@ impl NodeKind {
 ///
 /// Iterates nodes in topological order, resolves input types from links,
 /// and infers output types using NodeKind rules.
+///
+/// For optional inputs without connections, uses the default value's type.
 pub fn propagate_types(view: &GraphView) -> Result<TypeMap, TypeError> {
     let mut type_map = TypeMap::new();
 
-    // Process nodes in topological order
     for &node_id in &view.topo_order {
-        // Skip unreachable nodes
         if !view.reachable.contains(&node_id) {
             continue;
         }
@@ -86,32 +86,51 @@ pub fn propagate_types(view: &GraphView) -> Result<TypeMap, TypeError> {
             .node(node_id)
             .expect("node from topo_order must exist");
 
-        // Collect input types from connected links
         let mut input_types = Vec::new();
         for &input_socket in &node.inputs {
-            // Find the link connected to this input socket
-            let mut found_type = None;
-            for link in view.graph.links_into(input_socket) {
-                // Get the type of the source socket
+            let socket = view
+                .graph
+                .socket(input_socket)
+                .expect("socket from node must exist");
+
+            let link = view.graph.links_into(input_socket).next();
+
+            if let Some(link) = link {
                 if let Some(source_type) = type_map.get(link.from) {
-                    found_type = Some(source_type);
-                    break;
+                    input_types.push(source_type);
+                    continue;
                 }
             }
 
-            if let Some(ty) = found_type {
-                input_types.push(ty);
-            } else {
-                // Input has no connection or source type not yet resolved
-                // For now, treat missing inputs as errors
-                return Err(TypeError::EmptyUnification);
+            let config = socket.input_config.as_ref();
+            let is_optional = config.map(|c| c.optional).unwrap_or(false);
+
+            if is_optional {
+                if let Some(default_literal) = config.and_then(|c| c.default.as_ref()) {
+                    let default_type = default_literal.value_type();
+                    if default_type != socket.value_type {
+                        return Err(TypeError::DefaultLiteralTypeMismatch {
+                            socket: input_socket,
+                            expected: socket.value_type,
+                            found: default_type,
+                        });
+                    }
+                    input_types.push(socket.value_type);
+                    continue;
+                } else {
+                    return Err(TypeError::OptionalInputMissingDefault {
+                        socket: input_socket,
+                    });
+                }
             }
+
+            return Err(TypeError::UnconnectedRequiredInput {
+                socket: input_socket,
+            });
         }
 
-        // Infer output type using NodeKind rules
         let output_type = node.kind.infer_output_type(&input_types)?;
 
-        // Assign the output type to all output sockets
         for &output_socket in &node.outputs {
             type_map.set(output_socket, output_type);
         }

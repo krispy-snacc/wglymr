@@ -214,3 +214,106 @@ fn test_multiple_roots() {
     assert_eq!(type_map.get(p1_out), Some(ValueType::Float));
     assert_eq!(type_map.get(p2_out), Some(ValueType::Vec3));
 }
+
+#[test]
+fn test_optional_input_with_default_succeeds() {
+    use crate::{InputDef, Literal};
+
+    let mut graph = Graph::new();
+
+    let node = graph.add_node_with_config(
+        NodeKind::Generic("pass".to_string()),
+        Vec2::ZERO,
+        vec![InputDef::optional("in", ValueType::Float, Literal::Float(1.0))],
+        vec![("out".to_string(), ValueType::Float)],
+    );
+
+    let out_socket = graph.node(node).unwrap().outputs[0];
+
+    let view = build_graph_view(&graph, &[node]).unwrap();
+    let type_map = propagate_types(&view).unwrap();
+
+    assert_eq!(type_map.get(out_socket), Some(ValueType::Float));
+}
+
+#[test]
+fn test_required_input_unconnected_errors() {
+    use crate::InputDef;
+
+    let mut graph = Graph::new();
+
+    let node = graph.add_node_with_config(
+        NodeKind::Generic("pass".to_string()),
+        Vec2::ZERO,
+        vec![InputDef::required("in", ValueType::Float)],
+        vec![("out".to_string(), ValueType::Float)],
+    );
+
+    let view = build_graph_view(&graph, &[node]).unwrap();
+    let result = propagate_types(&view);
+
+    assert!(result.is_err());
+    match result {
+        Err(crate::TypeError::UnconnectedRequiredInput { .. }) => {}
+        _ => panic!("expected UnconnectedRequiredInput error"),
+    }
+}
+
+#[test]
+fn test_default_literal_type_mismatch_errors() {
+    use crate::{InputDef, Literal};
+
+    let mut graph = Graph::new();
+
+    let node = graph.add_node_with_config(
+        NodeKind::Generic("pass".to_string()),
+        Vec2::ZERO,
+        vec![InputDef::optional("in", ValueType::Float, Literal::Vec3([1.0, 2.0, 3.0]))],
+        vec![("out".to_string(), ValueType::Float)],
+    );
+
+    let view = build_graph_view(&graph, &[node]).unwrap();
+    let result = propagate_types(&view);
+
+    assert!(result.is_err());
+    match result {
+        Err(crate::TypeError::DefaultLiteralTypeMismatch { expected, found, .. }) => {
+            assert_eq!(expected, ValueType::Float);
+            assert_eq!(found, ValueType::Vec3);
+        }
+        _ => panic!("expected DefaultLiteralTypeMismatch error"),
+    }
+}
+
+#[test]
+fn test_optional_connected_uses_upstream_type() {
+    use crate::{InputDef, Literal};
+
+    let mut graph = Graph::new();
+
+    let value_node = graph.add_node(
+        NodeKind::Value(ValueType::Float),
+        Vec2::ZERO,
+        vec![],
+        vec![("out".to_string(), ValueType::Float)],
+    );
+
+    let pass_node = graph.add_node_with_config(
+        NodeKind::Generic("pass".to_string()),
+        Vec2::new(100.0, 0.0),
+        vec![InputDef::optional("in", ValueType::Float, Literal::Float(999.0))],
+        vec![("out".to_string(), ValueType::Float)],
+    );
+
+    let value_out = graph.node(value_node).unwrap().outputs[0];
+    let pass_in = graph.node(pass_node).unwrap().inputs[0];
+    let pass_out = graph.node(pass_node).unwrap().outputs[0];
+
+    graph.connect(value_out, pass_in).unwrap();
+
+    let view = build_graph_view(&graph, &[pass_node]).unwrap();
+    let type_map = propagate_types(&view).unwrap();
+
+    assert_eq!(type_map.get(value_out), Some(ValueType::Float));
+    assert_eq!(type_map.get(pass_out), Some(ValueType::Float));
+}

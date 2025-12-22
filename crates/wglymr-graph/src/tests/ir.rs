@@ -87,3 +87,5 @@ fn test_ir_program_preserves_insertion_order() {
         _ => panic!("Third instruction should be binary"),
     }
 }
+
+

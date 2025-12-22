@@ -24,4 +24,14 @@ pub enum GraphError {
 
     #[error("Graph contains cycles, cannot compute topological order")]
     CycleDetected,
+
+    #[error("Optional input socket {socket:?} missing default value")]
+    OptionalInputMissingDefault { socket: SocketId },
+
+    #[error("Default literal type mismatch for socket {socket:?}: expected {expected:?}, found {found:?}")]
+    DefaultLiteralTypeMismatch {
+        socket: SocketId,
+        expected: ValueType,
+        found: ValueType,
+    },
 }

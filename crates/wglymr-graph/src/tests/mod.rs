@@ -3,6 +3,8 @@ mod graph;
 #[cfg(test)]
 mod ir;
 #[cfg(test)]
+mod ir_debug;
+#[cfg(test)]
 mod ir_lowering;
 #[cfg(test)]
 mod passes;
@@ -10,3 +12,5 @@ mod passes;
 mod type_propagation;
 #[cfg(test)]
 mod types;
+#[cfg(test)]
+mod wgsl;

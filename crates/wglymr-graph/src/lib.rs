@@ -12,6 +12,7 @@
 mod error;
 mod graph;
 pub mod ir;
+mod ir_lowering;
 mod link;
 mod node;
 pub mod passes;
@@ -25,6 +26,7 @@ mod tests;
 pub use error::GraphError;
 pub use graph::Graph;
 pub use ir::{BinaryOp, IrInst, IrProgram, IrType, Literal, ValueId};
+pub use ir_lowering::{lower_to_ir, IrLoweringError};
 pub use link::{Link, LinkId};
 pub use node::{MathOp, Node, NodeId, NodeKind};
 pub use passes::{build_graph_view, detect_cycles, reachable_from, topological_sort, GraphView};

@@ -47,6 +47,7 @@ pub enum BinaryOp {
     Div,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum IrInst {
     Constant {
         value: Literal,
@@ -59,8 +60,15 @@ pub enum IrInst {
         rhs: ValueId,
         ty: IrType,
     },
+
+    Convert {
+        from: ValueId,
+        from_ty: IrType,
+        to_ty: IrType,
+    },
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct IrProgram {
     pub instructions: Vec<IrInst>,
 }

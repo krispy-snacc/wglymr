@@ -12,6 +12,7 @@
 mod error;
 mod graph;
 pub mod ir;
+pub mod ir_conversion;
 pub mod ir_debug;
 mod ir_lowering;
 mod link;
@@ -28,6 +29,7 @@ mod tests;
 pub use error::GraphError;
 pub use graph::{Graph, InputDef};
 pub use ir::{BinaryOp, IrInst, IrProgram, IrType, Literal, ValueId};
+pub use ir_conversion::{insert_conversions, ConversionError};
 pub use ir_debug::{pretty_print, validate_ir, IrValidationError};
 pub use ir_lowering::{lower_to_ir, IrLoweringError};
 pub use link::{Link, LinkId};

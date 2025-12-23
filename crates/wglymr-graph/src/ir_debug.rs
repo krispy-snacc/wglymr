@@ -29,6 +29,18 @@ pub fn pretty_print(ir: &IrProgram) -> String {
                     value_id, type_str, op_str, lhs.0, rhs.0
                 )
             }
+            IrInst::Convert {
+                from,
+                from_ty,
+                to_ty,
+            } => {
+                let from_str = format_type(*from_ty);
+                let to_str = format_type(*to_ty);
+                format!(
+                    "{}: {} = convert v{} ({} -> {})\n",
+                    value_id, to_str, from.0, from_str, to_str
+                )
+            }
         };
         output.push_str(&line);
     }
@@ -41,6 +53,7 @@ pub fn validate_ir(ir: &IrProgram) -> Result<(), IrValidationError> {
         let referenced_values = match inst {
             IrInst::Constant { .. } => vec![],
             IrInst::Binary { lhs, rhs, .. } => vec![*lhs, *rhs],
+            IrInst::Convert { from, .. } => vec![*from],
         };
 
         for value_id in referenced_values {

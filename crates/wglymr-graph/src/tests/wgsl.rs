@@ -120,4 +120,52 @@ fn test_color_type_emits_as_vec4() {
     assert!(wgsl.contains("let v0: vec4<f32> = vec4<f32>(1, 0.5, 0, 1);"));
 }
 
+#[test]
+fn test_conversion_float_to_vec3() {
+    let program = IrProgram {
+        instructions: vec![
+            IrInst::Constant {
+                value: Literal::Float(2.0),
+                ty: IrType::Float,
+            },
+            IrInst::Convert {
+                from: ValueId(0),
+                from_ty: IrType::Float,
+                to_ty: IrType::Vec3,
+            },
+        ],
+    };
+
+    let wgsl = emit_wgsl(&program);
+
+    assert!(wgsl.contains("fn main() -> vec3<f32>"));
+    assert!(wgsl.contains("let v0: f32 = 2;"));
+    assert!(wgsl.contains("let v1: vec3<f32> = vec3<f32>(v0);"));
+    assert!(wgsl.contains("return v1;"));
+}
+
+#[test]
+fn test_conversion_vec3_to_color() {
+    let program = IrProgram {
+        instructions: vec![
+            IrInst::Constant {
+                value: Literal::Vec3([1.0, 0.0, 0.5]),
+                ty: IrType::Vec3,
+            },
+            IrInst::Convert {
+                from: ValueId(0),
+                from_ty: IrType::Vec3,
+                to_ty: IrType::Color,
+            },
+        ],
+    };
+
+    let wgsl = emit_wgsl(&program);
+
+    assert!(wgsl.contains("fn main() -> vec4<f32>"));
+    assert!(wgsl.contains("let v0: vec3<f32> = vec3<f32>(1, 0, 0.5);"));
+    assert!(wgsl.contains("let v1: vec4<f32> = vec4<f32>(v0.x, v0.y, v0.z, 1.0);"));
+    assert!(wgsl.contains("return v1;"));
+}
+
 

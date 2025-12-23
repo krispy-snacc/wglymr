@@ -3,6 +3,8 @@ mod graph;
 #[cfg(test)]
 mod ir;
 #[cfg(test)]
+mod ir_conversion;
+#[cfg(test)]
 mod ir_debug;
 #[cfg(test)]
 mod ir_lowering;

@@ -43,6 +43,7 @@ fn get_return_type(ir: &IrProgram) -> IrType {
     match ir.instructions.last() {
         Some(IrInst::Constant { ty, .. }) => *ty,
         Some(IrInst::Binary { ty, .. }) => *ty,
+        Some(IrInst::Convert { to_ty, .. }) => *to_ty,
         None => panic!("Empty IR program"),
     }
 }
@@ -73,7 +74,58 @@ fn emit_instruction(inst: &IrInst, value_id: ValueId) -> String {
             line.push_str(";\n");
             line
         }
+        IrInst::Convert {
+            from,
+            from_ty,
+            to_ty,
+        } => emit_conversion(value_id, *from, *from_ty, *to_ty),
     }
+}
+
+fn emit_conversion(value_id: ValueId, from: ValueId, from_ty: IrType, to_ty: IrType) -> String {
+    let mut line = String::from("    let ");
+    line.push_str(&value_name(value_id));
+    line.push_str(": ");
+    line.push_str(&type_to_wgsl(to_ty));
+    line.push_str(" = ");
+
+    match (from_ty, to_ty) {
+        (IrType::Float, IrType::Vec2) => {
+            line.push_str("vec2<f32>(");
+            line.push_str(&value_name(from));
+            line.push_str(")");
+        }
+        (IrType::Float, IrType::Vec3) => {
+            line.push_str("vec3<f32>(");
+            line.push_str(&value_name(from));
+            line.push_str(")");
+        }
+        (IrType::Float, IrType::Vec4) => {
+            line.push_str("vec4<f32>(");
+            line.push_str(&value_name(from));
+            line.push_str(")");
+        }
+        (IrType::Float, IrType::Color) => {
+            line.push_str("vec4<f32>(");
+            line.push_str(&value_name(from));
+            line.push_str(")");
+        }
+        (IrType::Vec3, IrType::Color) => {
+            line.push_str("vec4<f32>(");
+            line.push_str(&value_name(from));
+            line.push_str(".x, ");
+            line.push_str(&value_name(from));
+            line.push_str(".y, ");
+            line.push_str(&value_name(from));
+            line.push_str(".z, 1.0)");
+        }
+        _ => {
+            line.push_str(&value_name(from));
+        }
+    }
+
+    line.push_str(";\n");
+    line
 }
 
 fn literal_to_wgsl(lit: &Literal, ty: IrType) -> String {

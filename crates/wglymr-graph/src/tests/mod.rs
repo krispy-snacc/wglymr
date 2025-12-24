@@ -1,4 +1,6 @@
 #[cfg(test)]
+mod diagnostics;
+#[cfg(test)]
 mod graph;
 #[cfg(test)]
 mod ir;

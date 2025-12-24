@@ -9,6 +9,7 @@
 //! - Explicit error handling
 //! - Read-only graph analysis passes
 
+pub mod diagnostics;
 mod error;
 mod graph;
 pub mod ir;
@@ -26,6 +27,11 @@ pub mod wgsl;
 #[cfg(test)]
 mod tests;
 
+pub use diagnostics::{
+    diagnostics_from_conversion_error, diagnostics_from_lowering_error,
+    diagnostics_from_type_error, unreachable_nodes, warning_conversion_inserted,
+    warning_default_value_used, warnings_unreachable_nodes, Diagnostic, DiagnosticSeverity,
+};
 pub use error::GraphError;
 pub use graph::{Graph, InputDef};
 pub use ir::{BinaryOp, IrInst, IrProgram, IrType, Literal, ValueId};

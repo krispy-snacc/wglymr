@@ -4,3 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+wgpu = "23.0"
+wglymr-render-wgpu = { path = "../wglymr-render-wgpu" }

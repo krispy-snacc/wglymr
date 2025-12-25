@@ -2,8 +2,11 @@ mod buffers;
 mod device;
 mod execute;
 mod pipeline;
+mod primitives;
 
+pub use device::{create_gpu_context, GpuContext};
 pub use execute::execute_wgsl_f32;
+pub use primitives::PrimitiveRenderer;
 
 #[cfg(test)]
 mod tests {

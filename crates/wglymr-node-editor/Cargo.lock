@@ -717,6 +717,9 @@ dependencies = [
 name = "wglymr-node-editor"
 version = "0.1.0"
 dependencies = [
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
  "wglymr-render-wgpu",
  "wgpu",
 ]

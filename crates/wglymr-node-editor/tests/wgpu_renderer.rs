@@ -1,5 +1,5 @@
 use wglymr_node_editor::editor::renderer::draw_canvas;
-use wglymr_node_editor::editor::view_state::{RenderEdge, RenderNode, Rect};
+use wglymr_node_editor::editor::view_state::{Camera, RenderEdge, RenderNode, Rect};
 use wglymr_node_editor::editor::wgpu_renderer::WgpuNodeEditorRenderer;
 use wglymr_render_wgpu::{create_gpu_context, PrimitiveRenderer};
 
@@ -8,10 +8,16 @@ fn test_wgpu_renderer_instantiation() {
     let ctx = create_gpu_context();
     let mut primitive_renderer = PrimitiveRenderer::new(&ctx.device, wgpu::TextureFormat::Rgba8UnormSrgb);
     
+    let camera = Camera {
+        pan: [0.0, 0.0],
+        zoom: 1.0,
+    };
+    
     let _renderer = WgpuNodeEditorRenderer::new(
         &ctx.device,
         &ctx.queue,
         &mut primitive_renderer,
+        camera,
     );
 }
 
@@ -20,10 +26,16 @@ fn test_wgpu_renderer_draw_calls() {
     let ctx = create_gpu_context();
     let mut primitive_renderer = PrimitiveRenderer::new(&ctx.device, wgpu::TextureFormat::Rgba8UnormSrgb);
     
+    let camera = Camera {
+        pan: [0.0, 0.0],
+        zoom: 1.0,
+    };
+    
     let mut renderer = WgpuNodeEditorRenderer::new(
         &ctx.device,
         &ctx.queue,
         &mut primitive_renderer,
+        camera,
     );
     
     let nodes = vec![

@@ -1,4 +1,4 @@
-use wgpu::{Buffer, Device, Queue, RenderPass, RenderPipeline};
+use wgpu::{BindGroup, Buffer, Device, Queue, RenderPass, RenderPipeline};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -7,10 +7,20 @@ struct Vertex {
     color: [f32; 4],
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct CameraUniform {
+    pan: [f32; 2],
+    zoom: f32,
+    _padding: f32,
+}
+
 pub struct PrimitiveRenderer {
     line_pipeline: RenderPipeline,
     rect_pipeline: RenderPipeline,
     vertex_buffer: Buffer,
+    camera_buffer: Buffer,
+    camera_bind_group: BindGroup,
 }
 
 impl PrimitiveRenderer {
@@ -37,9 +47,40 @@ impl PrimitiveRenderer {
             ],
         };
 
+        let camera_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Camera Uniform Buffer"),
+            size: std::mem::size_of::<CameraUniform>() as wgpu::BufferAddress,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let camera_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Camera Bind Group Layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }],
+            });
+
+        let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Camera Bind Group"),
+            layout: &camera_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: camera_buffer.as_entire_binding(),
+            }],
+        });
+
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Primitive Pipeline Layout"),
-            bind_group_layouts: &[],
+            bind_group_layouts: &[&camera_bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -131,7 +172,18 @@ impl PrimitiveRenderer {
             line_pipeline,
             rect_pipeline,
             vertex_buffer,
+            camera_buffer,
+            camera_bind_group,
         }
+    }
+
+    pub fn set_camera(&mut self, queue: &Queue, pan: [f32; 2], zoom: f32) {
+        let uniform = CameraUniform {
+            pan,
+            zoom,
+            _padding: 0.0,
+        };
+        queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[uniform]));
     }
 
     pub fn draw_line(&mut self, queue: &Queue, from: [f32; 2], to: [f32; 2], color: [f32; 4]) {
@@ -182,12 +234,14 @@ impl PrimitiveRenderer {
 
     pub fn render_lines<'a>(&'a self, render_pass: &mut RenderPass<'a>, vertex_count: u32) {
         render_pass.set_pipeline(&self.line_pipeline);
+        render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.draw(0..vertex_count, 0..1);
     }
 
     pub fn render_rects<'a>(&'a self, render_pass: &mut RenderPass<'a>, vertex_count: u32) {
         render_pass.set_pipeline(&self.rect_pipeline);
+        render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.draw(0..vertex_count, 0..1);
     }

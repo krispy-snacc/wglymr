@@ -1,9 +1,10 @@
 use crate::editor::renderer::NodeEditorRenderer;
-use crate::editor::view_state::{RenderEdge, RenderNode};
+use crate::editor::view_state::{Camera, RenderEdge, RenderNode};
 
 pub struct WgpuNodeEditorRenderer<'a> {
     queue: &'a wgpu::Queue,
     primitive_renderer: &'a mut wglymr_render_wgpu::PrimitiveRenderer,
+    camera: Camera,
 }
 
 impl<'a> WgpuNodeEditorRenderer<'a> {
@@ -11,16 +12,25 @@ impl<'a> WgpuNodeEditorRenderer<'a> {
         _device: &'a wgpu::Device,
         queue: &'a wgpu::Queue,
         primitive_renderer: &'a mut wglymr_render_wgpu::PrimitiveRenderer,
+        camera: Camera,
     ) -> Self {
         Self {
             queue,
             primitive_renderer,
+            camera,
         }
+    }
+
+    pub fn set_camera(&mut self, camera: Camera) {
+        self.camera = camera;
     }
 }
 
 impl<'a> NodeEditorRenderer for WgpuNodeEditorRenderer<'a> {
     fn draw_node(&mut self, node: &RenderNode) {
+        self.primitive_renderer
+            .set_camera(self.queue, self.camera.pan, self.camera.zoom);
+
         let color = [0.2, 0.2, 0.3, 1.0];
 
         self.primitive_renderer
@@ -28,6 +38,9 @@ impl<'a> NodeEditorRenderer for WgpuNodeEditorRenderer<'a> {
     }
 
     fn draw_edge(&mut self, edge: &RenderEdge) {
+        self.primitive_renderer
+            .set_camera(self.queue, self.camera.pan, self.camera.zoom);
+
         let color = [0.8, 0.8, 0.8, 1.0];
 
         self.primitive_renderer

@@ -12,8 +12,8 @@ struct Vertex {
 struct CameraUniform {
     pan: [f32; 2],
     zoom: f32,
-    viewport: [f32; 2],
     _padding: f32,
+    viewport: [f32; 2],
 }
 
 pub struct PrimitiveRenderer {

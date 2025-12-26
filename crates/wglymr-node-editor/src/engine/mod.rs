@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
 use crate::document::adapter::DocumentAdapter;
+use crate::editor::layout::build_render_model;
+use crate::editor::renderer::draw_canvas;
+use crate::editor::wgpu_renderer::WgpuNodeEditorRenderer;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ViewId(String);
@@ -36,6 +39,22 @@ impl EditorView {
     fn set_camera(&mut self, pan: [f32; 2], zoom: f32) {
         self.pan = pan;
         self.zoom = zoom;
+    }
+
+    pub fn pan(&self) -> [f32; 2] {
+        self.pan
+    }
+
+    pub fn zoom(&self) -> f32 {
+        self.zoom
+    }
+
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
     }
 }
 
@@ -76,9 +95,26 @@ impl EditorEngine {
         }
     }
 
-    pub fn draw_view(&mut self, view_id: ViewId) {
-        if self.views.contains_key(&view_id) {
-            // Rendering orchestration placeholder
-        }
+    /// Orchestrates rendering for a single view.
+    /// Builds render model from document, then submits draw calls via renderer.
+    pub fn draw_view(
+        &mut self,
+        view_id: &ViewId,
+        _device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        primitive_renderer: &mut wglymr_render_wgpu::PrimitiveRenderer,
+    ) {
+        let view = match self.views.get(view_id) {
+            Some(v) => v,
+            None => return,
+        };
+
+        let (render_nodes, render_edges) = build_render_model(self.document.as_ref(), view);
+
+        let mut renderer = WgpuNodeEditorRenderer::new(primitive_renderer);
+
+        draw_canvas(&mut renderer, &render_nodes, &render_edges);
+
+        primitive_renderer.upload(queue);
     }
 }

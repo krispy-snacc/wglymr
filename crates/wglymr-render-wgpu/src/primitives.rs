@@ -9,19 +9,17 @@ struct Vertex {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-struct CameraUniform {
-    pan: [f32; 2],
-    zoom: f32,
-    _padding: f32,
+struct ViewportUniform {
     viewport: [f32; 2],
+    _padding: [f32; 2],
 }
 
 pub struct PrimitiveRenderer {
     line_pipeline: RenderPipeline,
     rect_pipeline: RenderPipeline,
     vertex_buffer: Buffer,
-    camera_buffer: Buffer,
-    camera_bind_group: BindGroup,
+    viewport_buffer: Buffer,
+    viewport_bind_group: BindGroup,
     vertices: Vec<Vertex>,
     rect_ranges: Vec<std::ops::Range<u32>>,
     line_ranges: Vec<std::ops::Range<u32>>,
@@ -51,16 +49,16 @@ impl PrimitiveRenderer {
             ],
         };
 
-        let camera_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Camera Uniform Buffer"),
-            size: std::mem::size_of::<CameraUniform>() as wgpu::BufferAddress,
+        let viewport_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Viewport Uniform Buffer"),
+            size: std::mem::size_of::<ViewportUniform>() as wgpu::BufferAddress,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
-        let camera_bind_group_layout =
+        let viewport_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("Camera Bind Group Layout"),
+                label: Some("Viewport Bind Group Layout"),
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::VERTEX,
@@ -73,18 +71,18 @@ impl PrimitiveRenderer {
                 }],
             });
 
-        let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Camera Bind Group"),
-            layout: &camera_bind_group_layout,
+        let viewport_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Viewport Bind Group"),
+            layout: &viewport_bind_group_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
-                resource: camera_buffer.as_entire_binding(),
+                resource: viewport_buffer.as_entire_binding(),
             }],
         });
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Primitive Pipeline Layout"),
-            bind_group_layouts: &[&camera_bind_group_layout],
+            bind_group_layouts: &[&viewport_bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -176,8 +174,8 @@ impl PrimitiveRenderer {
             line_pipeline,
             rect_pipeline,
             vertex_buffer,
-            camera_buffer,
-            camera_bind_group,
+            viewport_buffer,
+            viewport_bind_group,
             vertices: Vec::new(),
             rect_ranges: Vec::new(),
             line_ranges: Vec::new(),
@@ -190,14 +188,12 @@ impl PrimitiveRenderer {
         self.line_ranges.clear();
     }
 
-    pub fn set_camera(&mut self, queue: &Queue, pan: [f32; 2], zoom: f32, viewport: [f32; 2]) {
-        let uniform = CameraUniform {
-            pan,
-            zoom,
-            _padding: 0.0,
+    pub fn set_viewport(&mut self, queue: &Queue, viewport: [f32; 2]) {
+        let uniform = ViewportUniform {
             viewport,
+            _padding: [0.0, 0.0],
         };
-        queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[uniform]));
+        queue.write_buffer(&self.viewport_buffer, 0, bytemuck::cast_slice(&[uniform]));
     }
 
     pub fn draw_line(&mut self, from: [f32; 2], to: [f32; 2], color: [f32; 4]) {
@@ -256,7 +252,7 @@ impl PrimitiveRenderer {
 
     pub fn render_lines<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
         render_pass.set_pipeline(&self.line_pipeline);
-        render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
+        render_pass.set_bind_group(0, &self.viewport_bind_group, &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
 
         for range in &self.line_ranges {
@@ -266,7 +262,7 @@ impl PrimitiveRenderer {
 
     pub fn render_rects<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
         render_pass.set_pipeline(&self.rect_pipeline);
-        render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
+        render_pass.set_bind_group(0, &self.viewport_bind_group, &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
 
         for range in &self.rect_ranges {

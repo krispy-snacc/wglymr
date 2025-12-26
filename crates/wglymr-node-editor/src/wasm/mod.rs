@@ -1,8 +1,8 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
 use web_sys::HtmlCanvasElement;
 use wgpu::{Device, Queue, Surface, SurfaceConfiguration};
 
@@ -63,7 +63,10 @@ pub async fn attach_view_canvas(view_id: &str, canvas_id: &str, width: u32, heig
     let view_id_obj = ViewId::new(view_id.to_string());
 
     let view_exists = WEB_CONTEXTS.with(|contexts| {
-        contexts.borrow().as_ref().map_or(false, |ctx| ctx.contains_key(&view_id_obj))
+        contexts
+            .borrow()
+            .as_ref()
+            .map_or(false, |ctx| ctx.contains_key(&view_id_obj))
     });
     if view_exists {
         return;
@@ -179,14 +182,14 @@ pub fn create_view(view_id: &str) {
 #[wasm_bindgen]
 pub fn destroy_view(view_id: &str) {
     let id = ViewId::new(view_id.to_string());
-    
+
     ENGINE.with(|engine| {
         let mut engine = engine.borrow_mut();
         if let Some(engine) = engine.as_mut() {
             engine.destroy_view(id.clone());
         }
     });
-    
+
     WEB_CONTEXTS.with(|contexts| {
         let mut contexts = contexts.borrow_mut();
         if let Some(contexts) = contexts.as_mut() {
@@ -197,11 +200,23 @@ pub fn destroy_view(view_id: &str) {
 
 #[wasm_bindgen]
 pub fn resize_view(view_id: &str, width: u32, height: u32) {
+    let id = ViewId::new(view_id.to_string());
+
     ENGINE.with(|engine| {
         let mut engine = engine.borrow_mut();
         if let Some(engine) = engine.as_mut() {
-            let id = ViewId::new(view_id.to_string());
-            engine.resize_view(id, width, height);
+            engine.resize_view(id.clone(), width, height);
+        }
+    });
+
+    WEB_CONTEXTS.with(|contexts| {
+        let mut contexts = contexts.borrow_mut();
+        if let Some(contexts) = contexts.as_mut() {
+            if let Some(context) = contexts.get_mut(&id) {
+                context.config.width = width;
+                context.config.height = height;
+                context.surface.configure(&context.device, &context.config);
+            }
         }
     });
 }
@@ -250,27 +265,21 @@ pub fn render_view(view_id: &str) {
         context.primitive_renderer.begin_frame();
 
         let viewport = [context.config.width as f32, context.config.height as f32];
+        context
+            .primitive_renderer
+            .set_viewport(&context.queue, viewport);
 
-        context.primitive_renderer.set_camera(
-            &context.queue,
-            [0.0, 0.0],
-            1.0,
-            viewport,
-        );
-
-        context.primitive_renderer.draw_rect(
-            [100.0, 100.0],
-            [300.0, 300.0],
-            [1.0, 0.5, 0.0, 1.0]
-        );
-        
-        context.primitive_renderer.draw_line(
-            [50.0, 50.0],
-            [350.0, 350.0],
-            [0.0, 1.0, 1.0, 1.0],
-        );
-
-        context.primitive_renderer.upload(&context.queue);
+        ENGINE.with(|engine| {
+            let mut engine = engine.borrow_mut();
+            if let Some(engine) = engine.as_mut() {
+                engine.draw_view(
+                    &view_id_obj,
+                    &context.device,
+                    &context.queue,
+                    &mut context.primitive_renderer,
+                );
+            }
+        });
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -280,9 +289,9 @@ pub fn render_view(view_id: &str) {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.2,
-                            g: 0.2,
-                            b: 0.2,
+                            r: 0.1,
+                            g: 0.1,
+                            b: 0.15,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,

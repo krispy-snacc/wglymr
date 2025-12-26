@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "crates/wglymr-graph",
+    "crates/wglymr-node-editor",
+    "crates/wglymr-render-wgpu",
+]

@@ -1,28 +1,16 @@
 use crate::editor::renderer::NodeEditorRenderer;
-use crate::editor::view_state::{Camera, RenderEdge, RenderNode};
+use crate::editor::view_state::{RenderEdge, RenderNode};
 
+/// WGPU-backed renderer for node editor primitives.
+/// Receives pixel-space coordinates only.
+/// Camera transforms are applied on CPU before rendering.
 pub struct WgpuNodeEditorRenderer<'a> {
-    queue: &'a wgpu::Queue,
     primitive_renderer: &'a mut wglymr_render_wgpu::PrimitiveRenderer,
-    camera: Camera,
 }
 
 impl<'a> WgpuNodeEditorRenderer<'a> {
-    pub fn new(
-        _device: &'a wgpu::Device,
-        queue: &'a wgpu::Queue,
-        primitive_renderer: &'a mut wglymr_render_wgpu::PrimitiveRenderer,
-        camera: Camera,
-    ) -> Self {
-        Self {
-            queue,
-            primitive_renderer,
-            camera,
-        }
-    }
-
-    pub fn set_camera(&mut self, camera: Camera) {
-        self.camera = camera;
+    pub fn new(primitive_renderer: &'a mut wglymr_render_wgpu::PrimitiveRenderer) -> Self {
+        Self { primitive_renderer }
     }
 }
 

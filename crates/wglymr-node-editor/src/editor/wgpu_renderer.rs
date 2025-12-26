@@ -34,7 +34,7 @@ impl<'a> NodeEditorRenderer for WgpuNodeEditorRenderer<'a> {
         let color = [0.2, 0.2, 0.3, 1.0];
 
         self.primitive_renderer
-            .draw_rect(self.queue, node.rect.min, node.rect.max, color);
+            .draw_rect(node.rect.min, node.rect.max, color);
     }
 
     fn draw_edge(&mut self, edge: &RenderEdge) {
@@ -43,7 +43,6 @@ impl<'a> NodeEditorRenderer for WgpuNodeEditorRenderer<'a> {
 
         let color = [0.8, 0.8, 0.8, 1.0];
 
-        self.primitive_renderer
-            .draw_line(self.queue, edge.from, edge.to, color);
+        self.primitive_renderer.draw_line(edge.from, edge.to, color);
     }
 }

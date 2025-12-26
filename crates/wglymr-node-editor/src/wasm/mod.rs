@@ -247,6 +247,8 @@ pub fn render_view(view_id: &str) {
                 label: Some("Render Encoder"),
             });
 
+        context.primitive_renderer.begin_frame();
+
         context.primitive_renderer.set_camera(
             &context.queue,
             [0.0, 0.0],
@@ -254,18 +256,18 @@ pub fn render_view(view_id: &str) {
         );
 
         context.primitive_renderer.draw_rect(
-            &context.queue,
             [-0.5, -0.5],
             [0.5, 0.5],
             [1.0, 0.5, 0.0, 1.0]
         );
         
         context.primitive_renderer.draw_line(
-            &context.queue,
             [-0.8, 0.8],
             [0.8, -0.8],
             [0.0, 1.0, 1.0, 1.0],
         );
+
+        context.primitive_renderer.upload(&context.queue);
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -288,8 +290,8 @@ pub fn render_view(view_id: &str) {
                 occlusion_query_set: None,
             });
 
-            context.primitive_renderer.render_rects(&mut render_pass, 6);
-            context.primitive_renderer.render_lines(&mut render_pass, 2);
+            context.primitive_renderer.render_rects(&mut render_pass);
+            context.primitive_renderer.render_lines(&mut render_pass);
         }
 
         context.queue.submit(std::iter::once(encoder.finish()));

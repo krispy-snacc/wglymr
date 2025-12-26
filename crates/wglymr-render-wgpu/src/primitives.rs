@@ -21,6 +21,9 @@ pub struct PrimitiveRenderer {
     vertex_buffer: Buffer,
     camera_buffer: Buffer,
     camera_bind_group: BindGroup,
+    vertices: Vec<Vertex>,
+    rect_ranges: Vec<std::ops::Range<u32>>,
+    line_ranges: Vec<std::ops::Range<u32>>,
 }
 
 impl PrimitiveRenderer {
@@ -174,7 +177,16 @@ impl PrimitiveRenderer {
             vertex_buffer,
             camera_buffer,
             camera_bind_group,
+            vertices: Vec::new(),
+            rect_ranges: Vec::new(),
+            line_ranges: Vec::new(),
         }
+    }
+
+    pub fn begin_frame(&mut self) {
+        self.vertices.clear();
+        self.rect_ranges.clear();
+        self.line_ranges.clear();
     }
 
     pub fn set_camera(&mut self, queue: &Queue, pan: [f32; 2], zoom: f32) {
@@ -186,63 +198,77 @@ impl PrimitiveRenderer {
         queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[uniform]));
     }
 
-    pub fn draw_line(&mut self, queue: &Queue, from: [f32; 2], to: [f32; 2], color: [f32; 4]) {
-        let vertices = [
-            Vertex {
-                position: from,
-                color,
-            },
-            Vertex {
-                position: to,
-                color,
-            },
-        ];
+    pub fn draw_line(&mut self, from: [f32; 2], to: [f32; 2], color: [f32; 4]) {
+        let start = self.vertices.len() as u32;
 
-        queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&vertices));
+        self.vertices.push(Vertex {
+            position: from,
+            color,
+        });
+        self.vertices.push(Vertex {
+            position: to,
+            color,
+        });
+
+        let end = self.vertices.len() as u32;
+        self.line_ranges.push(start..end);
     }
 
-    pub fn draw_rect(&mut self, queue: &Queue, min: [f32; 2], max: [f32; 2], color: [f32; 4]) {
-        let vertices = [
-            Vertex {
-                position: [min[0], min[1]],
-                color,
-            },
-            Vertex {
-                position: [max[0], min[1]],
-                color,
-            },
-            Vertex {
-                position: [max[0], max[1]],
-                color,
-            },
-            Vertex {
-                position: [min[0], min[1]],
-                color,
-            },
-            Vertex {
-                position: [max[0], max[1]],
-                color,
-            },
-            Vertex {
-                position: [min[0], max[1]],
-                color,
-            },
-        ];
+    pub fn draw_rect(&mut self, min: [f32; 2], max: [f32; 2], color: [f32; 4]) {
+        let start = self.vertices.len() as u32;
 
-        queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&vertices));
+        self.vertices.push(Vertex {
+            position: [min[0], min[1]],
+            color,
+        });
+        self.vertices.push(Vertex {
+            position: [max[0], min[1]],
+            color,
+        });
+        self.vertices.push(Vertex {
+            position: [max[0], max[1]],
+            color,
+        });
+        self.vertices.push(Vertex {
+            position: [min[0], min[1]],
+            color,
+        });
+        self.vertices.push(Vertex {
+            position: [max[0], max[1]],
+            color,
+        });
+        self.vertices.push(Vertex {
+            position: [min[0], max[1]],
+            color,
+        });
+
+        let end = self.vertices.len() as u32;
+        self.rect_ranges.push(start..end);
     }
 
-    pub fn render_lines<'a>(&'a self, render_pass: &mut RenderPass<'a>, vertex_count: u32) {
+    pub fn upload(&self, queue: &Queue) {
+        if !self.vertices.is_empty() {
+            queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&self.vertices));
+        }
+    }
+
+    pub fn render_lines<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
         render_pass.set_pipeline(&self.line_pipeline);
         render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        render_pass.draw(0..vertex_count, 0..1);
+
+        for range in &self.line_ranges {
+            render_pass.draw(range.clone(), 0..1);
+        }
     }
 
-    pub fn render_rects<'a>(&'a self, render_pass: &mut RenderPass<'a>, vertex_count: u32) {
+    pub fn render_rects<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
         render_pass.set_pipeline(&self.rect_pipeline);
         render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        render_pass.draw(0..vertex_count, 0..1);
+
+        for range in &self.rect_ranges {
+            render_pass.draw(range.clone(), 0..1);
+        }
     }
 }

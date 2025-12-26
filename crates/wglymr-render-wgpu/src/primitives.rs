@@ -12,6 +12,7 @@ struct Vertex {
 struct CameraUniform {
     pan: [f32; 2],
     zoom: f32,
+    viewport: [f32; 2],
     _padding: f32,
 }
 
@@ -189,11 +190,12 @@ impl PrimitiveRenderer {
         self.line_ranges.clear();
     }
 
-    pub fn set_camera(&mut self, queue: &Queue, pan: [f32; 2], zoom: f32) {
+    pub fn set_camera(&mut self, queue: &Queue, pan: [f32; 2], zoom: f32, viewport: [f32; 2]) {
         let uniform = CameraUniform {
             pan,
             zoom,
             _padding: 0.0,
+            viewport,
         };
         queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[uniform]));
     }

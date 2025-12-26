@@ -28,21 +28,13 @@ impl<'a> WgpuNodeEditorRenderer<'a> {
 
 impl<'a> NodeEditorRenderer for WgpuNodeEditorRenderer<'a> {
     fn draw_node(&mut self, node: &RenderNode) {
-        // self.primitive_renderer
-        //     .set_camera(self.queue, self.camera.pan, self.camera.zoom);
-
         let color = [0.2, 0.2, 0.3, 1.0];
-
         self.primitive_renderer
             .draw_rect(node.rect.min, node.rect.max, color);
     }
 
     fn draw_edge(&mut self, edge: &RenderEdge) {
-        // self.primitive_renderer
-        //     .set_camera(self.queue, self.camera.pan, self.camera.zoom);
-
         let color = [0.8, 0.8, 0.8, 1.0];
-
         self.primitive_renderer.draw_line(edge.from, edge.to, color);
     }
 }

@@ -249,21 +249,24 @@ pub fn render_view(view_id: &str) {
 
         context.primitive_renderer.begin_frame();
 
+        let viewport = [context.config.width as f32, context.config.height as f32];
+
         context.primitive_renderer.set_camera(
             &context.queue,
             [0.0, 0.0],
             1.0,
+            viewport,
         );
 
         context.primitive_renderer.draw_rect(
-            [-0.5, -0.5],
-            [0.5, 0.5],
+            [100.0, 100.0],
+            [300.0, 300.0],
             [1.0, 0.5, 0.0, 1.0]
         );
         
         context.primitive_renderer.draw_line(
-            [-0.8, 0.8],
-            [0.8, -0.8],
+            [50.0, 50.0],
+            [350.0, 350.0],
             [0.0, 1.0, 1.0, 1.0],
         );
 

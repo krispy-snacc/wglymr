@@ -1,4 +1,4 @@
-use wglymr_node_editor::editor::renderer::draw_canvas;
+use wglymr_node_editor::editor::renderer::NodeEditorRenderer;
 use wglymr_node_editor::editor::view_state::{Rect, RenderEdge, RenderNode};
 use wglymr_node_editor::editor::wgpu_renderer::WgpuNodeEditorRenderer;
 use wglymr_render_wgpu::{PrimitiveRenderer, create_gpu_context};
@@ -36,5 +36,11 @@ fn test_wgpu_renderer_draw_calls() {
         to: [200.0, 200.0],
     }];
 
-    draw_canvas(&mut renderer, &nodes, &edges);
+    for edge in &edges {
+        renderer.draw_edge(edge);
+    }
+
+    for node in &nodes {
+        renderer.draw_node(node);
+    }
 }

@@ -274,7 +274,6 @@ pub fn render_view(view_id: &str) {
             if let Some(engine) = engine.as_mut() {
                 engine.draw_view(
                     &view_id_obj,
-                    &context.device,
                     &context.queue,
                     &mut context.primitive_renderer,
                 );

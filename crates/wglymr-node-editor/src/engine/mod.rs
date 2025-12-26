@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::document::adapter::DocumentAdapter;
 use crate::editor::layout::build_render_model;
-use crate::editor::renderer::draw_canvas;
+use crate::editor::renderer::NodeEditorRenderer;
 use crate::editor::wgpu_renderer::WgpuNodeEditorRenderer;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -97,10 +97,10 @@ impl EditorEngine {
 
     /// Orchestrates rendering for a single view.
     /// Builds render model from document, then submits draw calls via renderer.
+    /// Draw order: edges first (background), then nodes (foreground).
     pub fn draw_view(
         &mut self,
         view_id: &ViewId,
-        _device: &wgpu::Device,
         queue: &wgpu::Queue,
         primitive_renderer: &mut wglymr_render_wgpu::PrimitiveRenderer,
     ) {
@@ -113,7 +113,13 @@ impl EditorEngine {
 
         let mut renderer = WgpuNodeEditorRenderer::new(primitive_renderer);
 
-        draw_canvas(&mut renderer, &render_nodes, &render_edges);
+        for edge in &render_edges {
+            renderer.draw_edge(edge);
+        }
+
+        for node in &render_nodes {
+            renderer.draw_node(node);
+        }
 
         primitive_renderer.upload(queue);
     }

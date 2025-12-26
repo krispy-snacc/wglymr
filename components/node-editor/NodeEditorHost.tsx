@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { Grid3x3, Box } from "lucide-react";
 
@@ -7,22 +8,55 @@ interface NodeEditorHostProps {
     viewId: string;
 }
 
-/**
- * NodeEditorHost - Placeholder for WASM/egui node editor
- * 
- * This component serves as the mount point for the future WebAssembly-based
- * node editor. The egui canvas will be mounted directly into this container.
- * 
- * TODO: Integrate WASM module and mount egui canvas here
- * TODO: Pass viewId to WASM context for shader loading
- */
+let engineInitialized = false;
+
 export function NodeEditorHost({ viewId }: NodeEditorHostProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        let mounted = true;
+
+        const initializeEditor = async () => {
+            if (!containerRef.current) return;
+
+            const wasm = await import("../../wasm-pkg/wglymr_node_editor.js");
+            await wasm.default();
+
+            if (!engineInitialized) {
+                wasm.init_engine();
+                engineInitialized = true;
+            }
+
+            if (!mounted) return;
+
+            wasm.create_view(viewId);
+
+            const container = containerRef.current;
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            const canvasId = `node-editor-canvas-${viewId}`;
+
+            await wasm.attach_view_canvas(viewId, canvasId, width, height);
+
+            if (!mounted) return;
+
+            wasm.render_view(viewId);
+        };
+
+        initializeEditor();
+
+        return () => {
+            mounted = false;
+        };
+    }, [viewId]);
+
     return (
         <div className="w-full h-full bg-zinc-950/80 backdrop-blur-md p-2">
-            {/* Node Editor Canvas */}
             <ContextMenu.Root>
                 <ContextMenu.Trigger asChild>
                     <div
+                        ref={containerRef}
                         id={`node-editor-${viewId}`}
                         className="w-full h-full relative overflow-hidden"
                         style={{
@@ -33,21 +67,7 @@ export function NodeEditorHost({ viewId }: NodeEditorHostProps) {
                             backgroundSize: "20px 20px",
                         }}
                     >
-                        {/* Placeholder Content */}
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                            <div className="flex items-center gap-3">
-                                <Box className="w-8 h-8 text-gray-600" />
-                                <Grid3x3 className="w-8 h-8 text-gray-600" />
-                            </div>
-                            <div className="text-center space-y-1">
-                                <h3 className="text-lg font-medium text-gray-400">Node Editor</h3>
-                                <p className="text-sm text-gray-600">WASM mount point</p>
-                                <p className="text-xs text-gray-700 font-mono mt-2">view: {viewId}</p>
-                            </div>
-                        </div>
-
-                        {/* Future WASM Canvas Mount Point */}
-                        <div id={`node-editor-canvas-${viewId}`} className="absolute inset-0" />
+                        <canvas id={`node-editor-canvas-${viewId}`} className="absolute inset-0" />
                     </div>
                 </ContextMenu.Trigger>
 

@@ -56,6 +56,10 @@ impl EditorEngine {
         self.views.insert(view_id, EditorView::new());
     }
 
+    pub fn has_view(&self, view_id: &ViewId) -> bool {
+        self.views.contains_key(view_id)
+    }
+
     pub fn destroy_view(&mut self, view_id: ViewId) {
         self.views.remove(&view_id);
     }

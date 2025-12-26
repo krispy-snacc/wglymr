@@ -15,6 +15,11 @@ thread_local! {
     static WEB_CONTEXTS: RefCell<Option<HashMap<ViewId, WebViewContext>>> = RefCell::new(None);
 }
 
+#[wasm_bindgen(start)]
+pub fn wasm_start() {
+    console_error_panic_hook::set_once();
+}
+
 struct WebViewContext {
     canvas: HtmlCanvasElement,
     surface: Surface<'static>,
@@ -29,55 +34,80 @@ pub fn init_engine() {
     ENGINE.with(|engine| {
         let mut engine = engine.borrow_mut();
         if engine.is_some() {
-            panic!("Engine already initialized");
+            return;
         }
         let adapter = BasicDocumentAdapter::new();
         *engine = Some(EditorEngine::new(Box::new(adapter)));
     });
 
     WEB_CONTEXTS.with(|contexts| {
-        *contexts.borrow_mut() = Some(HashMap::new());
+        let mut contexts = contexts.borrow_mut();
+        if contexts.is_none() {
+            *contexts = Some(HashMap::new());
+        }
     });
 }
 
 #[wasm_bindgen]
 pub async fn attach_view_canvas(view_id: &str, canvas_id: &str, width: u32, height: u32) {
-    ENGINE.with(|engine| {
-        let engine = engine.borrow();
-        if engine.is_none() {
-            panic!("Engine not initialized. Call init_engine() first.");
-        }
-    });
+    let engine_initialized = ENGINE.with(|engine| engine.borrow().is_some());
+    if !engine_initialized {
+        return;
+    }
+
+    let contexts_initialized = WEB_CONTEXTS.with(|contexts| contexts.borrow().is_some());
+    if !contexts_initialized {
+        return;
+    }
 
     let view_id_obj = ViewId::new(view_id.to_string());
 
-    let window = web_sys::window().expect("No window found");
-    let document = window.document().expect("No document found");
-    let canvas = document
-        .get_element_by_id(canvas_id)
-        .expect(&format!("Canvas element '{}' not found", canvas_id))
-        .dyn_into::<HtmlCanvasElement>()
-        .expect("Element is not a canvas");
+    let view_exists = WEB_CONTEXTS.with(|contexts| {
+        contexts.borrow().as_ref().map_or(false, |ctx| ctx.contains_key(&view_id_obj))
+    });
+    if view_exists {
+        return;
+    }
+
+    let window = match web_sys::window() {
+        Some(w) => w,
+        None => return,
+    };
+    let document = match window.document() {
+        Some(d) => d,
+        None => return,
+    };
+    let canvas = match document.get_element_by_id(canvas_id) {
+        Some(elem) => match elem.dyn_into::<HtmlCanvasElement>() {
+            Ok(c) => c,
+            Err(_) => return,
+        },
+        None => return,
+    };
 
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends: wgpu::Backends::BROWSER_WEBGPU,
         ..Default::default()
     });
 
-    let surface = instance
-        .create_surface(wgpu::SurfaceTarget::Canvas(canvas.clone()))
-        .expect("Failed to create surface");
+    let surface = match instance.create_surface(wgpu::SurfaceTarget::Canvas(canvas.clone())) {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
-    let adapter = instance
+    let adapter = match instance
         .request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::HighPerformance,
             compatible_surface: Some(&surface),
             force_fallback_adapter: false,
         })
         .await
-        .expect("Failed to find an appropriate adapter");
+    {
+        Some(a) => a,
+        None => return,
+    };
 
-    let (device, queue) = adapter
+    let (device, queue) = match adapter
         .request_device(
             &wgpu::DeviceDescriptor {
                 label: Some("Editor Device"),
@@ -88,7 +118,10 @@ pub async fn attach_view_canvas(view_id: &str, canvas_id: &str, width: u32, heig
             None,
         )
         .await
-        .expect("Failed to create device");
+    {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
     let surface_caps = surface.get_capabilities(&adapter);
     let surface_format = surface_caps
@@ -124,8 +157,9 @@ pub async fn attach_view_canvas(view_id: &str, canvas_id: &str, width: u32, heig
 
     WEB_CONTEXTS.with(|contexts| {
         let mut contexts = contexts.borrow_mut();
-        let contexts = contexts.as_mut().expect("Web contexts not initialized");
-        contexts.insert(view_id_obj, context);
+        if let Some(contexts) = contexts.as_mut() {
+            contexts.insert(view_id_obj, context);
+        }
     });
 }
 
@@ -135,18 +169,28 @@ pub fn create_view(view_id: &str) {
         let mut engine = engine.borrow_mut();
         if let Some(engine) = engine.as_mut() {
             let id = ViewId::new(view_id.to_string());
-            engine.create_view(id);
+            if !engine.has_view(&id) {
+                engine.create_view(id);
+            }
         }
     });
 }
 
 #[wasm_bindgen]
 pub fn destroy_view(view_id: &str) {
+    let id = ViewId::new(view_id.to_string());
+    
     ENGINE.with(|engine| {
         let mut engine = engine.borrow_mut();
         if let Some(engine) = engine.as_mut() {
-            let id = ViewId::new(view_id.to_string());
-            engine.destroy_view(id);
+            engine.destroy_view(id.clone());
+        }
+    });
+    
+    WEB_CONTEXTS.with(|contexts| {
+        let mut contexts = contexts.borrow_mut();
+        if let Some(contexts) = contexts.as_mut() {
+            contexts.remove(&id);
         }
     });
 }
@@ -179,13 +223,19 @@ pub fn render_view(view_id: &str) {
 
     WEB_CONTEXTS.with(|contexts| {
         let mut contexts = contexts.borrow_mut();
-        let contexts = contexts.as_mut().expect("Web contexts not initialized");
-        let context = contexts.get_mut(&view_id_obj).expect(&format!("View '{}' not found", view_id));
+        let contexts = match contexts.as_mut() {
+            Some(c) => c,
+            None => return,
+        };
+        let context = match contexts.get_mut(&view_id_obj) {
+            Some(c) => c,
+            None => return,
+        };
 
-        let surface_texture = context
-            .surface
-            .get_current_texture()
-            .expect("Failed to acquire surface texture");
+        let surface_texture = match context.surface.get_current_texture() {
+            Ok(t) => t,
+            Err(_) => return,
+        };
 
         let texture_view = surface_texture
             .texture
@@ -196,6 +246,12 @@ pub fn render_view(view_id: &str) {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Render Encoder"),
             });
+
+        context.primitive_renderer.set_camera(
+            &context.queue,
+            [0.0, 0.0],
+            1.0,
+        );
 
         context.primitive_renderer.draw_rect(
             &context.queue,

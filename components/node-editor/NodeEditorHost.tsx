@@ -11,6 +11,7 @@ interface NodeEditorHostProps {
 let engineInitialized = false;
 
 export function NodeEditorHost({ viewId }: NodeEditorHostProps) {
+    console.log("Mounted Node Editor in UI", viewId);
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {

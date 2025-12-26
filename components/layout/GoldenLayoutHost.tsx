@@ -23,6 +23,13 @@ type PanelState = {
 
 const STORAGE_KEY = "wglymr.goldenLayout.layout";
 
+function generateUniqueViewId(baseViewId: string, editorType: EditorType): string {
+    if (editorType === "nodeEditor") {
+        return `${baseViewId}-node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+    return baseViewId;
+}
+
 function createDefaultLayoutConfig(viewId: string): LayoutConfigType {
     return {
         settings: {
@@ -59,7 +66,10 @@ function createDefaultLayoutConfig(viewId: string): LayoutConfigType {
                             type: "component",
                             componentType: "panel",
                             title: getEditor("nodeEditor").displayName,
-                            componentState: { viewId, editorType: "nodeEditor" } satisfies PanelState,
+                            componentState: {
+                                viewId: generateUniqueViewId(viewId, "nodeEditor"),
+                                editorType: "nodeEditor"
+                            } satisfies PanelState,
                         },
                         {
                             type: "stack",
@@ -148,11 +158,20 @@ export function GoldenLayoutHost({ viewId, onLayoutReady }: GoldenLayoutHostProp
         const mountReactPanel = (container: ComponentContainer, state: JsonValue | undefined) => {
             const panelState = (state ?? {}) as Partial<PanelState>;
             const editorType = panelState.editorType as EditorType | undefined;
-            const effectiveViewId = typeof panelState.viewId === "string" ? panelState.viewId : viewId;
 
             if (!editorType) {
                 container.element.textContent = "";
                 return;
+            }
+
+            // Generate unique viewId for each panel instance
+            const baseViewId = typeof panelState.viewId === "string" ? panelState.viewId : viewId;
+            const needsUniqueId = editorType === "nodeEditor" && !baseViewId.includes("-node-");
+            const effectiveViewId = needsUniqueId ? generateUniqueViewId(viewId, editorType) : baseViewId;
+
+            // Update the state with the unique viewId if we generated a new one
+            if (needsUniqueId) {
+                container.setState({ ...panelState, viewId: effectiveViewId });
             }
 
             const ensureRoot = () => {
@@ -182,9 +201,24 @@ export function GoldenLayoutHost({ viewId, onLayoutReady }: GoldenLayoutHostProp
                 const currentState = container.getState() as Partial<PanelState>;
                 const currentEditorType = (currentState.editorType || editorType) as EditorType;
 
+                // Get the current viewId from state, or use effectiveViewId
+                const currentViewId = (currentState.viewId as string) || effectiveViewId;
+
                 const handleEditorTypeChange = (newEditorType: EditorType) => {
                     const freshState = container.getState() as Partial<PanelState>;
-                    container.setState({ ...freshState, editorType: newEditorType });
+                    const currentViewIdInState = freshState.viewId as string | undefined;
+
+                    // Generate new unique viewId if switching to node editor
+                    const newViewId = generateUniqueViewId(
+                        currentViewIdInState || viewId,
+                        newEditorType
+                    );
+
+                    container.setState({
+                        ...freshState,
+                        editorType: newEditorType,
+                        viewId: newViewId
+                    });
                     container.setTitle(getEditor(newEditorType).displayName);
                     render();
                 };
@@ -193,7 +227,7 @@ export function GoldenLayoutHost({ viewId, onLayoutReady }: GoldenLayoutHostProp
                     <PanelShell
                         editorType={currentEditorType}
                         onEditorTypeChange={handleEditorTypeChange}
-                        viewId={effectiveViewId}
+                        viewId={currentViewId}
                     />
                 );
             };
@@ -251,9 +285,10 @@ export function GoldenLayoutHost({ viewId, onLayoutReady }: GoldenLayoutHostProp
 
         const openEditor = (editorType: EditorType) => {
             const editor = getEditor(editorType);
+            const panelViewId = generateUniqueViewId(viewId, editorType);
 
             try {
-                gl.addComponent("panel", { viewId, editorType } satisfies PanelState, editor.displayName);
+                gl.addComponent("panel", { viewId: panelViewId, editorType } satisfies PanelState, editor.displayName);
             } catch (e) {
                 console.error("Failed to add new editor panel:", e);
             }
@@ -308,12 +343,15 @@ export function GoldenLayoutHost({ viewId, onLayoutReady }: GoldenLayoutHostProp
                     }
 
                     try {
-                        // Create the component config
+                        // Create the component config with appropriate viewId
+                        const newEditorType: EditorType = "uniforms";
+                        const panelViewId = generateUniqueViewId(viewId, newEditorType);
+
                         const componentConfig = {
                             type: "component" as const,
                             componentType: "panel",
-                            title: getEditor("uniforms").displayName,
-                            componentState: { viewId, editorType: "uniforms" } satisfies PanelState,
+                            title: getEditor(newEditorType).displayName,
+                            componentState: { viewId: panelViewId, editorType: newEditorType } satisfies PanelState,
                         };
 
                         // Use addItem instead of newItem + addChild

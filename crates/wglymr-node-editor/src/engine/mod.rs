@@ -22,7 +22,7 @@ pub struct EditorView {
 }
 
 impl EditorView {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             pan: [0.0, 0.0],
             zoom: 1.0,
@@ -31,12 +31,12 @@ impl EditorView {
         }
     }
 
-    fn resize(&mut self, width: u32, height: u32) {
+    pub fn resize(&mut self, width: u32, height: u32) {
         self.width = width;
         self.height = height;
     }
 
-    fn set_camera(&mut self, pan: [f32; 2], zoom: f32) {
+    pub fn set_camera(&mut self, pan: [f32; 2], zoom: f32) {
         self.pan = pan;
         self.zoom = zoom;
     }

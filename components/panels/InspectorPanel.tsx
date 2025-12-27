@@ -7,11 +7,11 @@ export function InspectorPanel() {
     ];
 
     return (
-        <div className="h-full overflow-y-auto p-4 space-y-3 bg-zinc-950">
+        <div className="h-full overflow-y-auto p-4 flex flex-row gap-3  bg-zinc-950">
             {channels.map((channel) => (
                 <div
                     key={channel.id}
-                    className="flex flex-col gap-1.5"
+                    className="flex flex-col gap-1.5 w-min"
                 >
                     {/* Texture Preview */}
                     <button className="w-20 h-20 rounded bg-zinc-900 border border-white/5 hover:border-accent/50 flex items-center justify-center transition-all cursor-pointer group hover:bg-zinc-800">

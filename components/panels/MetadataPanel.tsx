@@ -27,7 +27,7 @@ export function MetadataPanel() {
                     <textarea
                         value={description}
                         onChange={(e) => documentStore.setState({ description: e.target.value })}
-                        className="w-full px-3 py-2 bg-zinc-900/50 border border-white/8rounded text-sm text-white placeholder:text-gray-600 focus:outline-none focus:bg-zinc-900/70 focus:border-white/20 transition-all resize-none"
+                        className="w-full px-3 py-2 bg-zinc-900/50 border border-white/8 rounded text-sm text-white placeholder:text-gray-600 focus:outline-none focus:bg-zinc-900/70 focus:border-white/20 transition-all resize-none"
                         placeholder="Add a description..."
                         rows={4}
                     />

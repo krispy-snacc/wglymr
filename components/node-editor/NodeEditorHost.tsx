@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
-import { Grid3x3, Box } from "lucide-react";
 
 interface NodeEditorHostProps {
     viewId: string;
@@ -22,6 +21,7 @@ export function NodeEditorHost({ viewId }: NodeEditorHostProps) {
 
             const wasm = await import("../../wasm-pkg/wglymr_node_editor.js");
             await wasm.default();
+            await wasm.init_gpu();
 
             if (!engineInitialized) {
                 wasm.init_engine();
@@ -31,6 +31,10 @@ export function NodeEditorHost({ viewId }: NodeEditorHostProps) {
             if (!mounted) return;
 
             wasm.create_view(viewId);
+
+
+            // IMPORTANT: wait for layout + canvas to exist
+            await new Promise(requestAnimationFrame);
 
             const container = containerRef.current;
             const width = container.clientWidth;
@@ -53,7 +57,7 @@ export function NodeEditorHost({ viewId }: NodeEditorHostProps) {
     }, [viewId]);
 
     return (
-        <div className="w-full h-full bg-zinc-950/80 backdrop-blur-md p-2">
+        <div className="w-full h-full bg-zinc-950/80 backdrop-blur-md">
             <ContextMenu.Root>
                 <ContextMenu.Trigger asChild>
                     <div

@@ -188,3 +188,17 @@ pub fn render() {
         }
     });
 }
+
+#[wasm_bindgen]
+pub fn start_render_loop() {
+    EditorRuntime::with(|rt| {
+        rt.render_loop_mut().start();
+    });
+}
+
+#[wasm_bindgen]
+pub fn stop_render_loop() {
+    EditorRuntime::with(|rt| {
+        rt.render_loop_mut().stop();
+    });
+}

@@ -42,11 +42,11 @@ export function NodeEditorHost({ viewId }: NodeEditorHostProps) {
 
             const canvasId = `node-editor-canvas-${viewId}`;
 
-            await wasm.attach_view_canvas(viewId, canvasId, width, height);
+            // await wasm.attach_view_canvas(viewId, canvasId, width, height);
 
-            if (!mounted) return;
+            // if (!mounted) return;
 
-            wasm.render_view(viewId);
+            // wasm.render_view(viewId);
         };
 
         initializeEditor();

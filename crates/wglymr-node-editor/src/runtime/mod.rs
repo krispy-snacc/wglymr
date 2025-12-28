@@ -1,12 +1,16 @@
 use std::cell::RefCell;
 
 pub mod api;
+#[cfg(target_arch = "wasm32")]
+pub mod browser_render_loop;
 pub mod errors;
 pub mod gpu;
 pub mod logging;
 pub mod scheduler;
 pub mod view_registry;
 
+#[cfg(target_arch = "wasm32")]
+use browser_render_loop::BrowserRenderLoop as RenderLoop;
 use gpu::GpuContext;
 use scheduler::Scheduler;
 use view_registry::ViewRegistry;
@@ -18,6 +22,11 @@ pub struct EditorRuntime {
     gpu: Option<GpuContext>,
     views: ViewRegistry,
     scheduler: Scheduler,
+
+    // Platform-specific render scheduler.
+    // In WASM builds, this is requestAnimationFrame-based.
+    // Native backends will provide a different implementation.
+    render_loop: RenderLoop,
 }
 
 impl EditorRuntime {
@@ -26,6 +35,7 @@ impl EditorRuntime {
             gpu: None,
             views: ViewRegistry::new(),
             scheduler: Scheduler::new(),
+            render_loop: RenderLoop::new(),
         }
     }
 
@@ -61,6 +71,21 @@ impl EditorRuntime {
 
     pub fn scheduler_mut(&mut self) -> &mut Scheduler {
         &mut self.scheduler
+    }
+
+    pub fn render_loop_mut(&mut self) -> &mut RenderLoop {
+        &mut self.render_loop
+    }
+
+    /// Called every frame by the render loop.
+    /// Checks if any views are dirty and renders them.
+    /// Does nothing if no views are dirty.
+    pub fn tick(&mut self) {
+        if self.scheduler.dirty_views().count() > 0 {
+            if let Err(e) = self.render_dirty_views() {
+                logging::error(&format!("Tick render failed: {}", e));
+            }
+        }
     }
 }
 

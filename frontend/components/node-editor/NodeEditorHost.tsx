@@ -2,7 +2,16 @@
 
 import { useEffect, useRef } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
-import * as runtime from "./runtime";
+import {
+    ensureEditorRuntimeReady,
+    createEditorView,
+    attachEditorView,
+    setEditorViewVisible,
+    resizeEditorView,
+    requestEditorRender,
+    detachEditorView,
+    destroyEditorView,
+} from "../../runtime";
 
 interface NodeEditorHostProps {
     viewId: string;
@@ -18,11 +27,11 @@ export function NodeEditorHost({ viewId }: NodeEditorHostProps) {
         const initializeEditor = async () => {
             if (!containerRef.current) return;
 
-            await runtime.ensureRuntimeReady();
+            await ensureEditorRuntimeReady();
 
             if (!mounted) return;
 
-            runtime.createView(viewId);
+            createEditorView(viewId);
 
             await new Promise(requestAnimationFrame);
 
@@ -37,20 +46,20 @@ export function NodeEditorHost({ viewId }: NodeEditorHostProps) {
             const width = container.clientWidth;
             const height = container.clientHeight;
 
-            runtime.attachView(viewId, canvas, width, height);
+            attachEditorView(viewId, canvas, width, height);
 
             // NOTE:
             // Golden Layout may hide panels without unmounting them.
             // Visibility should be toggled via setVisible(viewId, false/true)
             // when tab activation changes. Hook will be added later.
-            runtime.setVisible(viewId, true);
-            runtime.requestRender(viewId);
+            setEditorViewVisible(viewId, true);
+            requestEditorRender(viewId);
 
             resizeObserver = new ResizeObserver((entries) => {
                 for (const entry of entries) {
                     const { width, height } = entry.contentRect;
-                    runtime.resizeView(viewId, width, height);
-                    runtime.requestRender(viewId);
+                    resizeEditorView(viewId, width, height);
+                    requestEditorRender(viewId);
                 }
             });
 
@@ -67,9 +76,9 @@ export function NodeEditorHost({ viewId }: NodeEditorHostProps) {
             }
 
             try {
-                runtime.setVisible(viewId, false);
-                runtime.detachView(viewId);
-                runtime.destroyView(viewId);
+                setEditorViewVisible(viewId, false);
+                detachEditorView(viewId);
+                destroyEditorView(viewId);
             } catch (err) {
                 console.warn("Error during view cleanup:", err);
             }

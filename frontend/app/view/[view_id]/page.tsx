@@ -1,13 +1,13 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
-import { Navbar } from "@/components/navbar/Navbar";
-import { PreviewPanel } from "@/components/panels/PreviewPanel";
-import { UniformPanel } from "@/components/panels/UniformPanel";
-import { InspectorPanel } from "@/components/panels/InspectorPanel";
-import { ClientOnly } from "@/components/layout/ClientOnly";
-import { LoadingScreen } from "@/components/layout/LoadingScreen";
-import { GoldenLayoutHost } from "@/components/layout/GoldenLayoutHost";
+import { Navbar } from "@/ui/Navbar";
+import { PreviewPanel } from "@/panels/PreviewPanel";
+import { UniformPanel } from "@/panels/UniformPanel";
+import { InspectorPanel } from "@/panels/InspectorPanel";
+import { ClientOnly } from "@/layout/ClientOnly";
+import { LoadingScreen } from "@/layout/LoadingScreen";
+import { GoldenLayoutHost } from "@/layout/GoldenLayoutHost";
 import { Monitor } from "lucide-react";
 
 interface PageProps {
@@ -55,19 +55,19 @@ export default function ViewPage({ params }: PageProps) {
                             {/* Preview Panel */}
                             <div className="shrink-0 rounded-lg border border-white/10 overflow-hidden">
                                 <div style={{ height: 'calc(40 * var(--vh, 1vh))', minHeight: '300px' }}>
-                                    <PreviewPanel viewId={view_id} />
+                                    <PreviewPanel panelId="mobile-preview" />
                                 </div>
                             </div>
 
                             {/* Uniform Controls */}
                             <div className="shrink-0 rounded-lg">
-                                <UniformPanel />
+                                <UniformPanel panelId="mobile-uniforms" />
                             </div>
 
                             {/* Inspector Panel */}
                             <div className="shrink-0 rounded-lg">
                                 <ClientOnly>
-                                    <InspectorPanel />
+                                    <InspectorPanel panelId="mobile-inspector" />
                                 </ClientOnly>
                             </div>
 

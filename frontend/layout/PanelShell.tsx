@@ -1,7 +1,7 @@
 "use client";
 
-import { type EditorType, getEditor } from "./editorRegistry";
-import { PanelHeader } from "./panel/PanelHeader";
+import { type EditorType, getEditor } from "@/layout/editorRegistry";
+import { PanelHeader } from "@/layout/panel/PanelHeader";
 
 interface PanelShellProps {
     panelId: string;

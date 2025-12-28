@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { Navbar } from "@/components/navbar/Navbar";
+import { Navbar } from "@/ui/Navbar";
 import { Sparkles, Workflow, Zap, Code2, Cpu } from "lucide-react";
 
 export default function HomePage() {

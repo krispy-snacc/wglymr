@@ -6,7 +6,7 @@ import {
     type EditorType,
     EDITOR_REGISTRY,
     getEditor,
-} from "../editorRegistry";
+} from "@/layout/editorRegistry";
 
 interface PanelHeaderProps {
     editorType: EditorType;

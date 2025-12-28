@@ -1,12 +1,12 @@
 import type { LucideIcon } from "lucide-react";
 import { FileCode2, MonitorPlay, FileText, Sliders, Image } from "lucide-react";
 
-import { PreviewPanel } from "@/components/panels/PreviewPanel";
-import { NodeEditorHost } from "@/components/node-editor/NodeEditorHost";
-import { NodeEditorMenubar } from "@/components/node-editor/NodeEditorMenubar";
-import { MetadataPanel } from "@/components/panels/MetadataPanel";
-import { UniformPanel } from "@/components/panels/UniformPanel";
-import { InspectorPanel } from "@/components/panels/InspectorPanel";
+import { PreviewPanel } from "@/panels/PreviewPanel";
+import { NodeEditorHost } from "@/editors/nodeEditor/NodeEditorHost";
+import { NodeEditorMenubar } from "@/editors/nodeEditor/NodeEditorMenubar";
+import { MetadataPanel } from "@/panels/MetadataPanel";
+import { UniformPanel } from "@/panels/UniformPanel";
+import { InspectorPanel } from "@/panels/InspectorPanel";
 
 export type EditorType =
     | "preview"

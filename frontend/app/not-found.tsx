@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Navbar } from "@/components/navbar/Navbar";
+import { Navbar } from "@/ui/Navbar";
 import { Home, ArrowLeft, Search } from "lucide-react";
 
 export default function NotFound() {

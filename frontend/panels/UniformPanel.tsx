@@ -1,8 +1,8 @@
 "use client";
 
 import * as Slider from "@radix-ui/react-slider";
-import { useDocumentStore } from "@/lib/useDocumentStore";
-import { documentStore } from "@/lib/documentStore";
+import { useDocumentStore } from "@/document/useDocumentStore";
+import { documentStore } from "@/document/documentStore";
 
 interface UniformPanelProps {
     panelId: string;

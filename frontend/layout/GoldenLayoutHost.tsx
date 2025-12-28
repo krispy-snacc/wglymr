@@ -13,8 +13,8 @@ import {
 import "golden-layout/dist/css/goldenlayout-base.css";
 
 
-import { PanelShell } from "@/components/layout/PanelShell";
-import { type EditorType, getEditor } from "@/components/layout/editorRegistry";
+import { PanelShell } from "@/layout/PanelShell";
+import { type EditorType, getEditor } from "@/layout/editorRegistry";
 
 type PanelState = {
     panelId: string;

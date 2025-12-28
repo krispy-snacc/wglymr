@@ -1,6 +1,11 @@
 "use client";
 
-export function InspectorPanel() {
+interface InspectorPanelProps {
+    panelId: string;
+    viewId?: string;
+}
+
+export function InspectorPanel({ panelId }: InspectorPanelProps) {
     const channels = [
         { id: 0, name: "channel0", texture: null },
         { id: 1, name: "channel1", texture: null },

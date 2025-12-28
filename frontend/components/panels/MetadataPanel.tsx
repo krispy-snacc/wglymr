@@ -3,7 +3,12 @@
 import { useDocumentStore } from "@/lib/useDocumentStore";
 import { documentStore } from "@/lib/documentStore";
 
-export function MetadataPanel() {
+interface MetadataPanelProps {
+    panelId: string;
+    viewId?: string;
+}
+
+export function MetadataPanel({ panelId }: MetadataPanelProps) {
     const { title, description, isPublic } = useDocumentStore();
 
     return (

@@ -15,14 +15,18 @@ export type EditorType =
     | "uniforms"
     | "textures";
 
+type EditorComponentProps = {
+    panelId: string;
+    viewId?: string;
+};
+
 type EditorDefinition = {
     id: EditorType;
     displayName: string;
     icon: LucideIcon;
-    component:
-        | React.ComponentType<{ viewId: string }>
-        | React.ComponentType<Record<string, never>>;
+    component: React.ComponentType<EditorComponentProps>;
     toolbar?: React.ComponentType<Record<string, never>>;
+    requiresViewId?: boolean;
 };
 
 export const EDITOR_REGISTRY: Record<EditorType, EditorDefinition> = {
@@ -31,6 +35,7 @@ export const EDITOR_REGISTRY: Record<EditorType, EditorDefinition> = {
         displayName: "Preview",
         icon: MonitorPlay,
         component: PreviewPanel,
+        requiresViewId: true,
     },
     nodeEditor: {
         id: "nodeEditor",
@@ -38,6 +43,7 @@ export const EDITOR_REGISTRY: Record<EditorType, EditorDefinition> = {
         icon: FileCode2,
         component: NodeEditorHost,
         toolbar: NodeEditorMenubar,
+        requiresViewId: true,
     },
     metadata: {
         id: "metadata",

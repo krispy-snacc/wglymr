@@ -5,10 +5,11 @@ import * as ContextMenu from "@radix-ui/react-context-menu";
 import { Play, Pause, RotateCcw, Maximize2 } from "lucide-react";
 
 interface PreviewPanelProps {
-    viewId: string;
+    panelId: string;
+    viewId?: string;
 }
 
-export function PreviewPanel({ viewId }: PreviewPanelProps) {
+export function PreviewPanel({ panelId }: PreviewPanelProps) {
     const [isPlaying, setIsPlaying] = useState(true);
     const [fps, setFps] = useState(60);
     const [time, setTime] = useState(0);

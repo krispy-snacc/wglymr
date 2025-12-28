@@ -14,13 +14,16 @@ import {
 } from "../../runtime";
 
 interface NodeEditorHostProps {
-    viewId: string;
+    panelId: string;
+    viewId?: string;
 }
 
-export function NodeEditorHost({ viewId }: NodeEditorHostProps) {
+export function NodeEditorHost({ panelId, viewId }: NodeEditorHostProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        if (!viewId) return;
+
         let mounted = true;
         let resizeObserver: ResizeObserver | null = null;
 

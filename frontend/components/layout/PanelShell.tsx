@@ -4,14 +4,15 @@ import { type EditorType, getEditor } from "./editorRegistry";
 import { PanelHeader } from "./panel/PanelHeader";
 
 interface PanelShellProps {
+    panelId: string;
     editorType: EditorType;
     onEditorTypeChange: (editorType: EditorType) => void;
     viewId?: string;
 }
 
-export function PanelShell({ editorType, onEditorTypeChange, viewId }: PanelShellProps) {
+export function PanelShell({ panelId, editorType, onEditorTypeChange, viewId }: PanelShellProps) {
     const editor = getEditor(editorType);
-    const EditorComponent = editor.component as React.ComponentType<any>;
+    const EditorComponent = editor.component;
 
     return (
         <div className="h-full flex flex-col bg-zinc-950">
@@ -21,7 +22,7 @@ export function PanelShell({ editorType, onEditorTypeChange, viewId }: PanelShel
                 editorRegistryEntry={editor}
             />
             <div className="flex-1 overflow-hidden">
-                {viewId ? <EditorComponent viewId={viewId} /> : <EditorComponent />}
+                <EditorComponent panelId={panelId} viewId={viewId} />
             </div>
         </div>
     );

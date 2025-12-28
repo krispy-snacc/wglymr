@@ -4,7 +4,12 @@ import * as Slider from "@radix-ui/react-slider";
 import { useDocumentStore } from "@/lib/useDocumentStore";
 import { documentStore } from "@/lib/documentStore";
 
-export function UniformPanel() {
+interface UniformPanelProps {
+    panelId: string;
+    viewId?: string;
+}
+
+export function UniformPanel({ panelId }: UniformPanelProps) {
     const { uniforms } = useDocumentStore();
 
     return (

@@ -22,7 +22,7 @@ type EditorDefinition = {
     component:
         | React.ComponentType<{ viewId: string }>
         | React.ComponentType<Record<string, never>>;
-    headerControls?: React.ComponentType<Record<string, never>>;
+    toolbar?: React.ComponentType<Record<string, never>>;
 };
 
 export const EDITOR_REGISTRY: Record<EditorType, EditorDefinition> = {
@@ -37,7 +37,7 @@ export const EDITOR_REGISTRY: Record<EditorType, EditorDefinition> = {
         displayName: "Node Editor",
         icon: FileCode2,
         component: NodeEditorHost,
-        headerControls: NodeEditorMenubar,
+        toolbar: NodeEditorMenubar,
     },
     metadata: {
         id: "metadata",

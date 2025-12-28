@@ -2,57 +2,68 @@
 
 import { useEffect, useRef } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
+import * as runtime from "./runtime";
 
 interface NodeEditorHostProps {
     viewId: string;
 }
 
-let engineInitialized = false;
-
 export function NodeEditorHost({ viewId }: NodeEditorHostProps) {
-    console.log("Mounted Node Editor in UI", viewId);
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         let mounted = true;
+        let resizeObserver: ResizeObserver | null = null;
 
         const initializeEditor = async () => {
             if (!containerRef.current) return;
 
-            const wasm = await import("../../wasm-pkg/wglymr_node_editor.js");
-            await wasm.default();
-            await wasm.init_gpu();
-
-            if (!engineInitialized) {
-                wasm.init_engine();
-                engineInitialized = true;
-            }
+            await runtime.ensureRuntimeReady();
 
             if (!mounted) return;
 
-            wasm.create_view(viewId);
+            runtime.createView(viewId);
 
-
-            // IMPORTANT: wait for layout + canvas to exist
             await new Promise(requestAnimationFrame);
 
+            if (!mounted) return;
+
             const container = containerRef.current;
+            if (!container) return;
+
+            const canvas = container.querySelector(`#node-editor-canvas-${viewId}`) as HTMLCanvasElement;
+            if (!canvas) return;
+
             const width = container.clientWidth;
             const height = container.clientHeight;
 
-            const canvasId = `node-editor-canvas-${viewId}`;
+            runtime.attachView(viewId, canvas, width, height);
+            runtime.setVisible(viewId, true);
+            runtime.requestRender(viewId);
 
-            // await wasm.attach_view_canvas(viewId, canvasId, width, height);
+            resizeObserver = new ResizeObserver((entries) => {
+                for (const entry of entries) {
+                    const { width, height } = entry.contentRect;
+                    runtime.resizeView(viewId, width, height);
+                    runtime.requestRender(viewId);
+                }
+            });
 
-            // if (!mounted) return;
-
-            // wasm.render_view(viewId);
+            resizeObserver.observe(container);
         };
 
         initializeEditor();
 
         return () => {
             mounted = false;
+
+            if (resizeObserver) {
+                resizeObserver.disconnect();
+            }
+
+            runtime.setVisible(viewId, false);
+            runtime.detachView(viewId);
+            runtime.destroyView(viewId);
         };
     }, [viewId]);
 

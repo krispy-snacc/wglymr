@@ -27,12 +27,18 @@ export async function ensureRuntimeReady(): Promise<void> {
 }
 
 export function createView(viewId: string): void {
-    if (!wasmModule) throw new Error("Runtime not initialized");
+    if (!wasmModule) {
+        console.warn("NodeEditor runtime not initialized");
+        return;
+    }
     wasmModule.create_view(viewId);
 }
 
 export function destroyView(viewId: string): void {
-    if (!wasmModule) throw new Error("Runtime not initialized");
+    if (!wasmModule) {
+        console.warn("NodeEditor runtime not initialized");
+        return;
+    }
     wasmModule.destroy_view(viewId);
 }
 
@@ -42,12 +48,18 @@ export function attachView(
     width: number,
     height: number
 ): void {
-    if (!wasmModule) throw new Error("Runtime not initialized");
+    if (!wasmModule) {
+        console.warn("NodeEditor runtime not initialized");
+        return;
+    }
     wasmModule.attach_view(viewId, canvas, width, height);
 }
 
 export function detachView(viewId: string): void {
-    if (!wasmModule) throw new Error("Runtime not initialized");
+    if (!wasmModule) {
+        console.warn("NodeEditor runtime not initialized");
+        return;
+    }
     wasmModule.detach_view(viewId);
 }
 
@@ -56,16 +68,25 @@ export function resizeView(
     width: number,
     height: number
 ): void {
-    if (!wasmModule) throw new Error("Runtime not initialized");
+    if (!wasmModule) {
+        console.warn("NodeEditor runtime not initialized");
+        return;
+    }
     wasmModule.resize_view(viewId, width, height);
 }
 
 export function setVisible(viewId: string, visible: boolean): void {
-    if (!wasmModule) throw new Error("Runtime not initialized");
+    if (!wasmModule) {
+        console.warn("NodeEditor runtime not initialized");
+        return;
+    }
     wasmModule.set_visible(viewId, visible);
 }
 
 export function requestRender(viewId: string): void {
-    if (!wasmModule) throw new Error("Runtime not initialized");
+    if (!wasmModule) {
+        console.warn("NodeEditor runtime not initialized");
+        return;
+    }
     wasmModule.request_render(viewId);
 }

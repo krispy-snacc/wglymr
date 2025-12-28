@@ -38,6 +38,11 @@ export function NodeEditorHost({ viewId }: NodeEditorHostProps) {
             const height = container.clientHeight;
 
             runtime.attachView(viewId, canvas, width, height);
+
+            // NOTE:
+            // Golden Layout may hide panels without unmounting them.
+            // Visibility should be toggled via setVisible(viewId, false/true)
+            // when tab activation changes. Hook will be added later.
             runtime.setVisible(viewId, true);
             runtime.requestRender(viewId);
 
@@ -61,9 +66,13 @@ export function NodeEditorHost({ viewId }: NodeEditorHostProps) {
                 resizeObserver.disconnect();
             }
 
-            runtime.setVisible(viewId, false);
-            runtime.detachView(viewId);
-            runtime.destroyView(viewId);
+            try {
+                runtime.setVisible(viewId, false);
+                runtime.detachView(viewId);
+                runtime.destroyView(viewId);
+            } catch (err) {
+                console.warn("Error during view cleanup:", err);
+            }
         };
     }, [viewId]);
 

@@ -113,8 +113,12 @@ export function NodeEditorHost() {
         const container = containerRef.current;
         if (!container || !commandCapability) return;
 
-        const canvas = container.querySelector(`#node-editor-canvas-${viewId}`) as HTMLCanvasElement;
+        const canvas = container.querySelector(
+            `#node-editor-canvas-${viewId}`
+        ) as HTMLCanvasElement;
         if (!canvas) return;
+
+        let activePointerId: number | null = null;
 
         const handleWheel = (event: WheelEvent) => {
             event.preventDefault();
@@ -129,6 +133,7 @@ export function NodeEditorHost() {
                 lastY: event.clientY,
                 button: event.button,
             };
+            activePointerId = event.pointerId;
             canvas.setPointerCapture(event.pointerId);
         };
 
@@ -139,7 +144,12 @@ export function NodeEditorHost() {
             const dx = event.clientX - drag.lastX;
             const dy = event.clientY - drag.lastY;
 
-            const command = cmd.routePointerDrag(dx, dy, drag.button, createInputContext(event));
+            const command = cmd.routePointerDrag(
+                dx,
+                dy,
+                drag.button,
+                createInputContext(event)
+            );
             dispatchCommand(command);
 
             drag.lastX = event.clientX;
@@ -147,8 +157,27 @@ export function NodeEditorHost() {
         };
 
         const handlePointerUp = (event: PointerEvent) => {
+            if (activePointerId !== null) {
+                try {
+                    canvas.releasePointerCapture(activePointerId);
+                } catch (err) {
+                    // Ignore if pointer capture was already released
+                }
+                activePointerId = null;
+            }
             dragStateRef.current.active = false;
-            canvas.releasePointerCapture(event.pointerId);
+        };
+
+        const handlePointerCancel = (event: PointerEvent) => {
+            if (activePointerId !== null) {
+                try {
+                    canvas.releasePointerCapture(activePointerId);
+                } catch (err) {
+                    // Ignore if pointer capture was already released
+                }
+                activePointerId = null;
+            }
+            dragStateRef.current.active = false;
         };
 
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -160,15 +189,26 @@ export function NodeEditorHost() {
         canvas.addEventListener("pointerdown", handlePointerDown);
         canvas.addEventListener("pointermove", handlePointerMove);
         canvas.addEventListener("pointerup", handlePointerUp);
+        canvas.addEventListener("pointercancel", handlePointerCancel);
         canvas.addEventListener("keydown", handleKeyDown);
 
         canvas.tabIndex = 0;
 
         return () => {
+            if (activePointerId !== null) {
+                try {
+                    canvas.releasePointerCapture(activePointerId);
+                } catch (err) {
+                    // Ignore if canvas is already detached
+                }
+            }
+            dragStateRef.current.active = false;
+
             canvas.removeEventListener("wheel", handleWheel);
             canvas.removeEventListener("pointerdown", handlePointerDown);
             canvas.removeEventListener("pointermove", handlePointerMove);
             canvas.removeEventListener("pointerup", handlePointerUp);
+            canvas.removeEventListener("pointercancel", handlePointerCancel);
             canvas.removeEventListener("keydown", handleKeyDown);
         };
     }, [viewId, commandCapability, createInputContext, dispatchCommand]);

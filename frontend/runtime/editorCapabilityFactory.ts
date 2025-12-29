@@ -3,12 +3,19 @@ import type {
     RenderCapability,
     ViewCapability,
     CommandCapability,
+    ViewLifecycleCapability,
 } from "@/editor-capabilities";
 import {
     setEditorViewVisible,
     resizeEditorView,
     requestEditorViewRender,
 } from "./viewManager";
+import {
+    createEditorView,
+    attachEditorView,
+    detachEditorView,
+    destroyEditorView,
+} from "./index";
 
 function createRenderCapability(viewId: string): RenderCapability {
     return {
@@ -51,6 +58,29 @@ function createCommandCapability(_viewId: string): CommandCapability {
     };
 }
 
+function createViewLifecycleCapability(
+    viewId: string
+): ViewLifecycleCapability {
+    return {
+        createView(): void {
+            createEditorView(viewId);
+        },
+        attachView(
+            canvas: HTMLCanvasElement,
+            width: number,
+            height: number
+        ): void {
+            attachEditorView(viewId, canvas, width, height);
+        },
+        detachView(): void {
+            detachEditorView(viewId);
+        },
+        destroyView(): void {
+            destroyEditorView(viewId);
+        },
+    };
+}
+
 export function createEditorCapabilities(
     viewId: string | undefined
 ): EditorCapabilities {
@@ -62,5 +92,6 @@ export function createEditorCapabilities(
         render: createRenderCapability(viewId),
         view: createViewCapability(viewId),
         command: createCommandCapability(viewId),
+        lifecycle: createViewLifecycleCapability(viewId),
     };
 }

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 import { documentStore } from "@/document/documentStore";
+import { RuntimeProvider } from "./RuntimeContext";
 
 interface GlymContextValue {
     glymId: string;
@@ -31,7 +32,9 @@ export function GlymProvider({ glymId, children }: GlymProviderProps) {
 
     return (
         <GlymContext.Provider value={value}>
-            {children}
+            <RuntimeProvider>
+                {children}
+            </RuntimeProvider>
         </GlymContext.Provider>
     );
 }

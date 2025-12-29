@@ -1,33 +1,63 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
-import { useEditorContext } from "@/context/EditorContext";
 import { useEditorCapabilities } from "@/context/EditorCapabilitiesContext";
+import type { InputContext } from "@/commands";
+import * as cmd from "@/commands";
 
 export function NodeEditorHost() {
     const containerRef = useRef<HTMLDivElement>(null);
-    const { runtime } = useEditorContext();
+    const dragStateRef = useRef({ active: false, lastX: 0, lastY: 0, button: -1 });
     const capabilities = useEditorCapabilities();
 
     const renderCapability = capabilities.render;
     const viewCapability = capabilities.view;
+    const commandCapability = capabilities.command;
+    const lifecycleCapability = capabilities.lifecycle;
+
+    const viewId = viewCapability?.getViewId();
+
+    if (!viewId) {
+        return null;
+    }
+
+    const createInputContext = useCallback(
+        (event: PointerEvent | WheelEvent | KeyboardEvent): InputContext => ({
+            viewId,
+            source: event instanceof KeyboardEvent ? "keyboard" : "pointer",
+            target: event.target,
+            modifiers: {
+                shift: event.shiftKey,
+                ctrl: event.ctrlKey,
+                alt: event.altKey,
+                meta: event.metaKey,
+            },
+        }),
+        [viewId]
+    );
+
+    const dispatchCommand = useCallback(
+        (command: cmd.AnyCommand | null) => {
+            if (command && commandCapability) {
+                commandCapability.dispatch(command);
+            }
+        },
+        [commandCapability]
+    );
 
     useEffect(() => {
-        if (!renderCapability || !viewCapability) return;
+        if (!renderCapability || !viewCapability || !lifecycleCapability) return;
 
-        const viewId = viewCapability.getViewId();
         let mounted = true;
         let resizeObserver: ResizeObserver | null = null;
 
         const initializeEditor = async () => {
             if (!containerRef.current) return;
 
-            await runtime.ensureReady();
-
             if (!mounted) return;
 
-            runtime.createView(viewId);
+            lifecycleCapability.createView();
 
             await new Promise(requestAnimationFrame);
 
@@ -36,13 +66,15 @@ export function NodeEditorHost() {
             const container = containerRef.current;
             if (!container) return;
 
-            const canvas = container.querySelector(`#node-editor-canvas-${viewId}`) as HTMLCanvasElement;
+            const canvas = container.querySelector(
+                `#node-editor-canvas-${viewId}`
+            ) as HTMLCanvasElement;
             if (!canvas) return;
 
             const width = container.clientWidth;
             const height = container.clientHeight;
 
-            runtime.attachView(viewId, canvas, width, height);
+            lifecycleCapability.attachView(canvas, width, height);
 
             renderCapability.setVisible(true);
             renderCapability.requestRender();
@@ -69,15 +101,89 @@ export function NodeEditorHost() {
 
             try {
                 renderCapability.setVisible(false);
-                runtime.detachView(viewId);
-                runtime.destroyView(viewId);
+                lifecycleCapability.detachView();
+                lifecycleCapability.destroyView();
             } catch (err) {
                 console.warn("Error during view cleanup:", err);
             }
         };
-    }, [renderCapability, viewCapability, runtime]);
+    }, [renderCapability, viewCapability, lifecycleCapability, viewId]);
 
-    const viewId = viewCapability?.getViewId();
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container || !commandCapability) return;
+
+        const canvas = container.querySelector(`#node-editor-canvas-${viewId}`) as HTMLCanvasElement;
+        if (!canvas) return;
+
+        const handleWheel = (event: WheelEvent) => {
+            event.preventDefault();
+            const command = cmd.routeWheelEvent(event, createInputContext(event));
+            dispatchCommand(command);
+        };
+
+        const handlePointerDown = (event: PointerEvent) => {
+            dragStateRef.current = {
+                active: true,
+                lastX: event.clientX,
+                lastY: event.clientY,
+                button: event.button,
+            };
+            canvas.setPointerCapture(event.pointerId);
+        };
+
+        const handlePointerMove = (event: PointerEvent) => {
+            const drag = dragStateRef.current;
+            if (!drag.active) return;
+
+            const dx = event.clientX - drag.lastX;
+            const dy = event.clientY - drag.lastY;
+
+            const command = cmd.routePointerDrag(dx, dy, drag.button, createInputContext(event));
+            dispatchCommand(command);
+
+            drag.lastX = event.clientX;
+            drag.lastY = event.clientY;
+        };
+
+        const handlePointerUp = (event: PointerEvent) => {
+            dragStateRef.current.active = false;
+            canvas.releasePointerCapture(event.pointerId);
+        };
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            const command = cmd.routeKeyboardEvent(event, createInputContext(event));
+            dispatchCommand(command);
+        };
+
+        canvas.addEventListener("wheel", handleWheel, { passive: false });
+        canvas.addEventListener("pointerdown", handlePointerDown);
+        canvas.addEventListener("pointermove", handlePointerMove);
+        canvas.addEventListener("pointerup", handlePointerUp);
+        canvas.addEventListener("keydown", handleKeyDown);
+
+        canvas.tabIndex = 0;
+
+        return () => {
+            canvas.removeEventListener("wheel", handleWheel);
+            canvas.removeEventListener("pointerdown", handlePointerDown);
+            canvas.removeEventListener("pointermove", handlePointerMove);
+            canvas.removeEventListener("pointerup", handlePointerUp);
+            canvas.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [viewId, commandCapability, createInputContext, dispatchCommand]);
+
+    const handleContextMenuAction = useCallback(
+        (action: string) => {
+            if (!commandCapability) return;
+
+            if (action === "reset-view") {
+                const command = cmd.resetView(viewId);
+                commandCapability.dispatch(command);
+            }
+        },
+        [viewId, commandCapability]
+    );
 
     return (
         <div className="w-full h-full bg-zinc-950/80 backdrop-blur-md">
@@ -108,7 +214,10 @@ export function NodeEditorHost() {
                             Add Comment
                         </ContextMenu.Item>
                         <ContextMenu.Separator className="h-px bg-white/10 my-1" />
-                        <ContextMenu.Item className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-300 rounded-md hover:bg-white/10 hover:text-white outline-none cursor-pointer transition-colors">
+                        <ContextMenu.Item
+                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-300 rounded-md hover:bg-white/10 hover:text-white outline-none cursor-pointer transition-colors"
+                            onSelect={() => handleContextMenuAction("reset-view")}
+                        >
                             Reset View
                         </ContextMenu.Item>
                         <ContextMenu.Item className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-300 rounded-md hover:bg-white/10 hover:text-white outline-none cursor-pointer transition-colors">

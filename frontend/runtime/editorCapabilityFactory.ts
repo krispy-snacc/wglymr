@@ -2,6 +2,7 @@ import type {
     EditorCapabilities,
     RenderCapability,
     ViewCapability,
+    CommandCapability,
 } from "@/editor-capabilities";
 import {
     setEditorViewVisible,
@@ -31,6 +32,25 @@ function createViewCapability(viewId: string): ViewCapability {
     };
 }
 
+// CommandCapability stub: forwards commands to runtime dispatcher.
+// IMPLEMENTATION PENDING: requires runtime command dispatcher in Rust.
+function createCommandCapability(_viewId: string): CommandCapability {
+    return {
+        async dispatch(command) {
+            // TODO: call WASM runtime.dispatchCommand(command)
+            // Runtime must validate, execute, and return result
+            console.warn(
+                "[CommandCapability] dispatch() not yet implemented",
+                command
+            );
+            return {
+                success: false,
+                error: "Runtime dispatcher not implemented",
+            };
+        },
+    };
+}
+
 export function createEditorCapabilities(
     viewId: string | undefined
 ): EditorCapabilities {
@@ -41,5 +61,6 @@ export function createEditorCapabilities(
     return {
         render: createRenderCapability(viewId),
         view: createViewCapability(viewId),
+        command: createCommandCapability(viewId),
     };
 }

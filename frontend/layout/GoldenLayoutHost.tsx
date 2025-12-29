@@ -26,9 +26,19 @@ function generatePanelId(): string {
     return `panel-${Date.now()}-${Math.random().toString(36).slice(2, 2 + 9)}`;
 }
 
+function generateViewId(glymId: string, panelId: string): string {
+    return `${glymId}-${panelId}`;
+}
+
 const STORAGE_KEY = "wglymr.goldenLayout.layout";
 
-function createDefaultLayoutConfig(viewId: string): LayoutConfigType {
+function createDefaultLayoutConfig(glymId: string): LayoutConfigType {
+    const panel1 = generatePanelId();
+    const panel2 = generatePanelId();
+    const panel3 = generatePanelId();
+    const panel4 = generatePanelId();
+    const panel5 = generatePanelId();
+
     return {
         settings: {
             reorderEnabled: true,
@@ -48,9 +58,9 @@ function createDefaultLayoutConfig(viewId: string): LayoutConfigType {
                             componentType: "panel",
                             title: getEditor("preview").displayName,
                             componentState: {
-                                panelId: generatePanelId(),
+                                panelId: panel1,
                                 editorType: "preview",
-                                viewId
+                                viewId: generateViewId(glymId, panel1)
                             } satisfies PanelState,
                         },
                         {
@@ -58,7 +68,7 @@ function createDefaultLayoutConfig(viewId: string): LayoutConfigType {
                             componentType: "panel",
                             title: getEditor("metadata").displayName,
                             componentState: {
-                                panelId: generatePanelId(),
+                                panelId: panel2,
                                 editorType: "metadata"
                             } satisfies PanelState,
                         },
@@ -72,9 +82,9 @@ function createDefaultLayoutConfig(viewId: string): LayoutConfigType {
                             componentType: "panel",
                             title: getEditor("nodeEditor").displayName,
                             componentState: {
-                                panelId: generatePanelId(),
+                                panelId: panel3,
                                 editorType: "nodeEditor",
-                                viewId
+                                viewId: generateViewId(glymId, panel3)
                             } satisfies PanelState,
                         },
                         {
@@ -85,7 +95,7 @@ function createDefaultLayoutConfig(viewId: string): LayoutConfigType {
                                     componentType: "panel",
                                     title: getEditor("uniforms").displayName,
                                     componentState: {
-                                        panelId: generatePanelId(),
+                                        panelId: panel4,
                                         editorType: "uniforms"
                                     } satisfies PanelState,
                                 },
@@ -94,7 +104,7 @@ function createDefaultLayoutConfig(viewId: string): LayoutConfigType {
                                     componentType: "panel",
                                     title: getEditor("textures").displayName,
                                     componentState: {
-                                        panelId: generatePanelId(),
+                                        panelId: panel5,
                                         editorType: "textures"
                                     } satisfies PanelState,
                                 },
@@ -127,11 +137,11 @@ function coerceToLayoutConfig(config: unknown): LayoutConfigType | undefined {
 }
 
 interface GoldenLayoutHostProps {
-    viewId: string;
+    glymId: string;
     onLayoutReady?: (openEditor: (editorType: EditorType) => void) => void;
 }
 
-export function GoldenLayoutHost({ viewId, onLayoutReady }: GoldenLayoutHostProps) {
+export function GoldenLayoutHost({ glymId, onLayoutReady }: GoldenLayoutHostProps) {
     const hostRef = useRef<HTMLDivElement | null>(null);
     const glRef = useRef<GoldenLayout | null>(null);
     const registerOnceKey = useMemo(() => "registerOnce", []);
@@ -163,9 +173,16 @@ export function GoldenLayoutHost({ viewId, onLayoutReady }: GoldenLayoutHostProp
                 container.setState({ ...panelState, panelId });
             }
 
-            // Use viewId from state if present, otherwise use the base viewId for editors that need it
-            const stateViewId = panelState.viewId;
-            const effectiveViewId = editor.requiresViewId ? (stateViewId || viewId) : undefined;
+            // Generate or reuse viewId if the editor requires it
+            let effectiveViewId: string | undefined;
+            if (editor.requiresViewId) {
+                if (panelState.viewId) {
+                    effectiveViewId = panelState.viewId;
+                } else {
+                    effectiveViewId = generateViewId(glymId, panelId);
+                    container.setState({ ...panelState, panelId, viewId: effectiveViewId });
+                }
+            }
 
             const ensureRoot = () => {
                 const existing = containerRoots.get(container);
@@ -200,8 +217,6 @@ export function GoldenLayoutHost({ viewId, onLayoutReady }: GoldenLayoutHostProp
                     const freshState = container.getState() as Partial<PanelState>;
                     const newEditor = getEditor(newEditorType);
 
-                    // Keep the same panelId, but update editorType
-                    // Only include viewId if the new editor requires it
                     const newState: Partial<PanelState> = {
                         ...freshState,
                         panelId: currentPanelId,
@@ -209,7 +224,7 @@ export function GoldenLayoutHost({ viewId, onLayoutReady }: GoldenLayoutHostProp
                     };
 
                     if (newEditor.requiresViewId) {
-                        newState.viewId = viewId;
+                        newState.viewId = freshState.viewId || generateViewId(glymId, currentPanelId);
                     } else {
                         delete newState.viewId;
                     }
@@ -252,11 +267,11 @@ export function GoldenLayoutHost({ viewId, onLayoutReady }: GoldenLayoutHostProp
 
         const savedRaw = safeJsonParse(typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null);
         const savedLayoutConfig = coerceToLayoutConfig(savedRaw);
-        const config = savedLayoutConfig ?? createDefaultLayoutConfig(viewId);
+        const config = savedLayoutConfig ?? createDefaultLayoutConfig(glymId);
         try {
             gl.loadLayout(config);
         } catch {
-            gl.loadLayout(createDefaultLayoutConfig(viewId));
+            gl.loadLayout(createDefaultLayoutConfig(glymId));
         }
 
         const save = () => {
@@ -281,13 +296,14 @@ export function GoldenLayoutHost({ viewId, onLayoutReady }: GoldenLayoutHostProp
 
         const openEditor = (editorType: EditorType) => {
             const editor = getEditor(editorType);
+            const panelId = generatePanelId();
             const newPanelState: PanelState = {
-                panelId: generatePanelId(),
+                panelId,
                 editorType,
             };
 
             if (editor.requiresViewId) {
-                newPanelState.viewId = viewId;
+                newPanelState.viewId = generateViewId(glymId, panelId);
             }
 
             try {
@@ -346,17 +362,17 @@ export function GoldenLayoutHost({ viewId, onLayoutReady }: GoldenLayoutHostProp
                     }
 
                     try {
-                        // Create the component config with appropriate viewId
                         const newEditorType: EditorType = "uniforms";
                         const newEditor = getEditor(newEditorType);
+                        const panelId = generatePanelId();
 
                         const newPanelState: PanelState = {
-                            panelId: generatePanelId(),
+                            panelId,
                             editorType: newEditorType,
                         };
 
                         if (newEditor.requiresViewId) {
-                            newPanelState.viewId = viewId;
+                            newPanelState.viewId = generateViewId(glymId, panelId);
                         }
 
                         const componentConfig = {
@@ -406,7 +422,7 @@ export function GoldenLayoutHost({ viewId, onLayoutReady }: GoldenLayoutHostProp
                 }
             });
         };
-    }, [registerOnceKey, viewId]);
+    }, [registerOnceKey, glymId]);
 
     return (
         <div

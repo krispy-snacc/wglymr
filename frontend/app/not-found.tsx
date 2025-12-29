@@ -39,7 +39,7 @@ export default function NotFound() {
                             <span>Go Home</span>
                         </Link>
                         <Link
-                            href="/view/default"
+                            href="/glym/default"
                             className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 border border-white/20 hover:border-white/40 rounded-lg text-sm font-medium text-gray-300 hover:text-white transition-colors"
                         >
                             <Search className="w-4 h-4" />

@@ -2,13 +2,14 @@
 
 import * as Menubar from "@radix-ui/react-menubar";
 import { FileText, Eye, HelpCircle } from "lucide-react";
+import { useGlymContext } from "@/context/GlymContext";
 
 interface TopMenuBarProps {
-    viewId: string;
     onTogglePanel?: (panel: string) => void;
 }
 
-export function TopMenuBar({ viewId, onTogglePanel }: TopMenuBarProps) {
+export function TopMenuBar({ onTogglePanel }: TopMenuBarProps) {
+    const { glymId } = useGlymContext();
     return (
         <div className="h-12 border-b border-white/10 bg-black/80 backdrop-blur-sm flex items-center px-4 justify-between">
             <Menubar.Root className="flex gap-1">
@@ -93,9 +94,9 @@ export function TopMenuBar({ viewId, onTogglePanel }: TopMenuBarProps) {
                 </Menubar.Menu>
             </Menubar.Root>
 
-            {/* View ID Display */}
+            {/* Glym ID Display */}
             <div className="text-xs text-gray-500 font-mono">
-                view: <span className="text-gray-400">{viewId}</span>
+                glym: <span className="text-gray-400">{glymId}</span>
             </div>
         </div>
     );

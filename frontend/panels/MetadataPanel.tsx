@@ -2,13 +2,10 @@
 
 import { useDocumentStore } from "@/document/useDocumentStore";
 import { documentStore } from "@/document/documentStore";
+import { usePanelContext } from "@/context/PanelContext";
 
-interface MetadataPanelProps {
-    panelId: string;
-    viewId?: string;
-}
-
-export function MetadataPanel({ panelId }: MetadataPanelProps) {
+export function MetadataPanel() {
+    const { panelId } = usePanelContext();
     const { title, description, isPublic } = useDocumentStore();
 
     return (

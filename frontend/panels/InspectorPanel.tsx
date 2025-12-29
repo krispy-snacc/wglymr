@@ -1,11 +1,9 @@
 "use client";
 
-interface InspectorPanelProps {
-    panelId: string;
-    viewId?: string;
-}
+import { usePanelContext } from "@/context/PanelContext";
 
-export function InspectorPanel({ panelId }: InspectorPanelProps) {
+export function InspectorPanel() {
+    const { panelId } = usePanelContext();
     const channels = [
         { id: 0, name: "channel0", texture: null },
         { id: 1, name: "channel1", texture: null },

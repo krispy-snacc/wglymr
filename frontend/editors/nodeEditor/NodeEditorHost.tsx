@@ -2,24 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
-import {
-    ensureEditorRuntimeReady,
-    createEditorView,
-    attachEditorView,
-    setEditorViewVisible,
-    resizeEditorView,
-    requestEditorRender,
-    detachEditorView,
-    destroyEditorView,
-} from "../../runtime";
+import { useEditorContext } from "@/context/EditorContext";
 
-interface NodeEditorHostProps {
-    panelId: string;
-    viewId?: string;
-}
-
-export function NodeEditorHost({ panelId, viewId }: NodeEditorHostProps) {
+export function NodeEditorHost() {
     const containerRef = useRef<HTMLDivElement>(null);
+    const { viewId, runtime } = useEditorContext();
 
     useEffect(() => {
         if (!viewId) return;
@@ -30,11 +17,11 @@ export function NodeEditorHost({ panelId, viewId }: NodeEditorHostProps) {
         const initializeEditor = async () => {
             if (!containerRef.current) return;
 
-            await ensureEditorRuntimeReady();
+            await runtime.ensureReady();
 
             if (!mounted) return;
 
-            createEditorView(viewId);
+            runtime.createView(viewId);
 
             await new Promise(requestAnimationFrame);
 
@@ -49,20 +36,16 @@ export function NodeEditorHost({ panelId, viewId }: NodeEditorHostProps) {
             const width = container.clientWidth;
             const height = container.clientHeight;
 
-            attachEditorView(viewId, canvas, width, height);
+            runtime.attachView(viewId, canvas, width, height);
 
-            // NOTE:
-            // Golden Layout may hide panels without unmounting them.
-            // Visibility should be toggled via setVisible(viewId, false/true)
-            // when tab activation changes. Hook will be added later.
-            setEditorViewVisible(viewId, true);
-            requestEditorRender(viewId);
+            runtime.setVisible(viewId, true);
+            runtime.requestRender(viewId);
 
             resizeObserver = new ResizeObserver((entries) => {
                 for (const entry of entries) {
                     const { width, height } = entry.contentRect;
-                    resizeEditorView(viewId, width, height);
-                    requestEditorRender(viewId);
+                    runtime.resizeView(viewId, width, height);
+                    runtime.requestRender(viewId);
                 }
             });
 
@@ -79,14 +62,14 @@ export function NodeEditorHost({ panelId, viewId }: NodeEditorHostProps) {
             }
 
             try {
-                setEditorViewVisible(viewId, false);
-                detachEditorView(viewId);
-                destroyEditorView(viewId);
+                runtime.setVisible(viewId, false);
+                runtime.detachView(viewId);
+                runtime.destroyView(viewId);
             } catch (err) {
                 console.warn("Error during view cleanup:", err);
             }
         };
-    }, [viewId]);
+    }, [viewId, runtime]);
 
     return (
         <div className="w-full h-full bg-zinc-950/80 backdrop-blur-md">

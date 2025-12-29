@@ -37,7 +37,7 @@ export function Navbar() {
                     <span className="hidden md:inline">GitHub</span>
                 </a>
                 <Link
-                    href="/view/default"
+                    href="/glym/default"
                     className="flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 bg-accent hover:bg-accent/80 rounded-lg text-xs font-medium text-white transition-colors"
                 >
                     <Sparkles className="w-3.5 h-3.5" />

@@ -15,16 +15,11 @@ export type EditorType =
     | "uniforms"
     | "textures";
 
-type EditorComponentProps = {
-    panelId: string;
-    viewId?: string;
-};
-
 type EditorDefinition = {
     id: EditorType;
     displayName: string;
     icon: LucideIcon;
-    component: React.ComponentType<EditorComponentProps>;
+    component: React.ComponentType<Record<string, never>>;
     toolbar?: React.ComponentType<Record<string, never>>;
     requiresViewId?: boolean;
 };

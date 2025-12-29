@@ -3,13 +3,10 @@
 import * as Slider from "@radix-ui/react-slider";
 import { useDocumentStore } from "@/document/useDocumentStore";
 import { documentStore } from "@/document/documentStore";
+import { usePanelContext } from "@/context/PanelContext";
 
-interface UniformPanelProps {
-    panelId: string;
-    viewId?: string;
-}
-
-export function UniformPanel({ panelId }: UniformPanelProps) {
+export function UniformPanel() {
+    const { panelId } = usePanelContext();
     const { uniforms } = useDocumentStore();
 
     return (

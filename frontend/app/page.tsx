@@ -38,7 +38,7 @@ export default function HomePage() {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3 px-4">
               <Link
-                href="/view/default"
+                href="/glym/default"
                 className="w-full sm:w-auto group flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-accent hover:bg-accent/90 rounded-lg text-sm sm:text-base font-semibold text-white transition-all hover:scale-105"
               >
                 <Sparkles className="w-4 h-4" />

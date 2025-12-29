@@ -3,14 +3,20 @@
 import { useEffect, useRef } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { useEditorContext } from "@/context/EditorContext";
+import { useEditorCapabilities } from "@/context/EditorCapabilitiesContext";
 
 export function NodeEditorHost() {
     const containerRef = useRef<HTMLDivElement>(null);
-    const { viewId, runtime } = useEditorContext();
+    const { runtime } = useEditorContext();
+    const capabilities = useEditorCapabilities();
+
+    const renderCapability = capabilities.render;
+    const viewCapability = capabilities.view;
 
     useEffect(() => {
-        if (!viewId) return;
+        if (!renderCapability || !viewCapability) return;
 
+        const viewId = viewCapability.getViewId();
         let mounted = true;
         let resizeObserver: ResizeObserver | null = null;
 
@@ -38,14 +44,14 @@ export function NodeEditorHost() {
 
             runtime.attachView(viewId, canvas, width, height);
 
-            runtime.setVisible(viewId, true);
-            runtime.requestRender(viewId);
+            renderCapability.setVisible(true);
+            renderCapability.requestRender();
 
             resizeObserver = new ResizeObserver((entries) => {
                 for (const entry of entries) {
                     const { width, height } = entry.contentRect;
-                    runtime.resizeView(viewId, width, height);
-                    runtime.requestRender(viewId);
+                    renderCapability.resize(width, height);
+                    renderCapability.requestRender();
                 }
             });
 
@@ -62,14 +68,16 @@ export function NodeEditorHost() {
             }
 
             try {
-                runtime.setVisible(viewId, false);
+                renderCapability.setVisible(false);
                 runtime.detachView(viewId);
                 runtime.destroyView(viewId);
             } catch (err) {
                 console.warn("Error during view cleanup:", err);
             }
         };
-    }, [viewId, runtime]);
+    }, [renderCapability, viewCapability, runtime]);
+
+    const viewId = viewCapability?.getViewId();
 
     return (
         <div className="w-full h-full bg-zinc-950/80 backdrop-blur-md">

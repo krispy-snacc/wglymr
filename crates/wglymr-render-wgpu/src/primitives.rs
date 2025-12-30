@@ -247,7 +247,7 @@ impl PrimitiveRenderer {
     /// Draw infinite grid in pixel space.
     /// Grid is stable during pan and scales naturally with zoom.
     pub fn draw_grid(&mut self, pan_world: [f32; 2], zoom: f32, viewport: [f32; 2]) {
-        const GRID_WORLD_SPACING: f32 = 100.0;
+        const GRID_WORLD_SPACING: f32 = 60.0;
         const GRID_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 0.03];
 
         // Convert world spacing → screen spacing

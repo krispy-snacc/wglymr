@@ -27,16 +27,42 @@ export function routeWheelEvent(
     event: WheelEvent,
     context: InputContext
 ): AnyCommand | null {
-    if (event.ctrlKey || event.metaKey) {
-        return cmd.zoomView(
+    event.preventDefault();
+
+    // Wheel deltas are inverted vs drag
+    const PAN_SCALE = 20.0;
+
+    if (event.shiftKey) {
+        return cmd.panView(
             context.viewId,
-            -event.deltaY * 0.01,
-            event.clientX,
-            event.clientY
+            -event.deltaY * PAN_SCALE,
+            -event.deltaX * PAN_SCALE
         );
     }
 
-    return cmd.panView(context.viewId, -event.deltaX, -event.deltaY);
+    if (event.ctrlKey) {
+        return cmd.panView(
+            context.viewId,
+            -event.deltaX * PAN_SCALE,
+            -event.deltaY * PAN_SCALE
+        );
+    }
+
+    const isZoom = event.ctrlKey || event.metaKey;
+
+    let canvas = event.target! as HTMLCanvasElement;
+    const rect = canvas.getBoundingClientRect();
+
+    const localX = event.clientX - rect.left;
+    const localY = event.clientY - rect.top;
+
+    // Normalize wheel delta (trackpad vs mouse)
+    const ZOOM_SENSITIVITY = 0.002;
+    const delta = Math.max(-100, Math.min(100, event.deltaY));
+
+    const zoomFactor = Math.exp(-delta * ZOOM_SENSITIVITY);
+
+    return cmd.zoomView(context.viewId, zoomFactor, localX, localY);
 }
 
 // Mouse drag with middle button → pan command

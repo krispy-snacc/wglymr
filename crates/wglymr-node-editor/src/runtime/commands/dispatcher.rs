@@ -35,18 +35,22 @@ fn handle_view_pan(
         .get(view_id)
         .ok_or_else(|| RuntimeError::ViewNotFound(view_id.to_string()))?;
 
-    let current_pan = view_state.view.pan();
-    let current_zoom = view_state.view.zoom();
+    let pan = view_state.view.pan();
+    let zoom = view_state.view.zoom();
 
-    let new_x = current_pan[0] + dx;
-    let new_y = current_pan[1] + dy;
+    // Convert screen-space delta → world-space delta
+    let world_dx = dx / zoom;
+    let world_dy = dy / zoom;
+
+    // Invert direction: dragging right moves world left
+    let new_pan_x = pan[0] - world_dx;
+    let new_pan_y = pan[1] - world_dy;
 
     runtime
         .views_mut()
-        .set_view_camera(view_id, new_x, new_y, current_zoom)?;
+        .set_view_camera(view_id, new_pan_x, new_pan_y, zoom)?;
     runtime.scheduler_mut().mark_dirty(view_id);
 
-    logging::debug(&format!("ViewPan: {} ({}, {})", view_id, dx, dy));
     Ok(())
 }
 
@@ -54,45 +58,45 @@ fn handle_view_pan(
 fn handle_view_zoom(
     runtime: &mut EditorRuntime,
     view_id: &str,
-    delta: f32,
-    center_x: Option<f32>,
-    center_y: Option<f32>,
+    zoom_factor: f32,
+    cursor_x: Option<f32>,
+    cursor_y: Option<f32>,
 ) -> Result<(), RuntimeError> {
-    let view_state = runtime
+    let state = runtime
         .views()
         .get(view_id)
         .ok_or_else(|| RuntimeError::ViewNotFound(view_id.to_string()))?;
 
-    let current_pan = view_state.view.pan();
-    let zoom_old = view_state.view.zoom();
-    let viewport_width = view_state.width as f32;
-    let viewport_height = view_state.height as f32;
+    let zoom_old = state.view.zoom();
+    let pan_world = state.view.pan(); // NOW interpreted as world-space center
+    let width = state.width as f32;
+    let height = state.height as f32;
 
     const MIN_ZOOM: f32 = 0.1;
     const MAX_ZOOM: f32 = 10.0;
-    let zoom_new = (zoom_old * delta).clamp(MIN_ZOOM, MAX_ZOOM);
 
-    let (new_pan_x, new_pan_y) = if let (Some(cx), Some(cy)) = (center_x, center_y) {
-        let viewport_center_x = viewport_width / 2.0;
-        let viewport_center_y = viewport_height / 2.0;
+    let zoom_new = (zoom_old * zoom_factor).clamp(MIN_ZOOM, MAX_ZOOM);
 
-        let world_x = (cx - viewport_center_x) / zoom_old + current_pan[0];
-        let world_y = (cy - viewport_center_y) / zoom_old + current_pan[1];
-
-        let new_pan_x = world_x - (cx - viewport_center_x) / zoom_new;
-        let new_pan_y = world_y - (cy - viewport_center_y) / zoom_new;
-
-        (new_pan_x, new_pan_y)
-    } else {
-        (current_pan[0], current_pan[1])
+    // If no cursor, zoom around center
+    let (cx, cy) = match (cursor_x, cursor_y) {
+        (Some(x), Some(y)) => (x, y),
+        _ => (width * 0.5, height * 0.5),
     };
+
+    // Convert cursor from screen → world (BEFORE zoom)
+    let world_under_cursor_x = cx / zoom_old + pan_world[0];
+    let world_under_cursor_y = cy / zoom_old + pan_world[1];
+
+    // Adjust pan so the same world point stays under cursor
+    let new_pan_x = world_under_cursor_x - cx / zoom_new;
+    let new_pan_y = world_under_cursor_y - cy / zoom_new;
 
     runtime
         .views_mut()
         .set_view_camera(view_id, new_pan_x, new_pan_y, zoom_new)?;
+
     runtime.scheduler_mut().mark_dirty(view_id);
 
-    logging::debug(&format!("ViewZoom: {} ({})", view_id, delta));
     Ok(())
 }
 

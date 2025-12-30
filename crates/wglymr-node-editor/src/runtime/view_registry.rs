@@ -2,6 +2,7 @@ use super::errors::RuntimeError;
 use super::gpu::SurfaceHandle;
 use crate::engine::EditorView;
 use std::collections::HashMap;
+use wglymr_render_wgpu::PrimitiveRenderer;
 
 pub type ViewId = String;
 
@@ -11,6 +12,7 @@ pub struct ViewState {
     pub attached: bool,
     pub surface: Option<SurfaceHandle>,
     pub config: Option<wgpu::SurfaceConfiguration>,
+    pub renderer: Option<PrimitiveRenderer>,
     pub width: u32,
     pub height: u32,
 }
@@ -23,6 +25,7 @@ impl ViewState {
             attached: false,
             surface: None,
             config: None,
+            renderer: None,
             width: 0,
             height: 0,
         }
@@ -106,8 +109,11 @@ impl ViewRegistry {
 
         wgpu_surface.configure(&gpu.device, &config);
 
+        let renderer = PrimitiveRenderer::new(&gpu.device, format);
+
         state.surface = Some(surface);
         state.config = Some(config);
+        state.renderer = Some(renderer);
         state.width = width;
         state.height = height;
         state.attached = true;
@@ -123,6 +129,7 @@ impl ViewRegistry {
 
         state.surface = None;
         state.config = None;
+        state.renderer = None;
         state.attached = false;
         Ok(())
     }

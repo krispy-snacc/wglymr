@@ -17,6 +17,8 @@ import {
     destroyEditorView,
 } from "./index";
 
+import { getWasmModule } from "./editorRuntime";
+
 function createRenderCapability(viewId: string): RenderCapability {
     return {
         requestRender(): void {
@@ -39,25 +41,48 @@ function createViewCapability(viewId: string): ViewCapability {
     };
 }
 
-// CommandCapability stub: forwards commands to runtime dispatcher.
-// IMPLEMENTATION PENDING: requires runtime command dispatcher in Rust.
 function createCommandCapability(_viewId: string): CommandCapability {
     return {
         async dispatch(command) {
-            // TODO: call WASM runtime.dispatchCommand(command)
-            // Runtime must validate, execute, and return result
-            console.warn(
-                "[CommandCapability] dispatch() not yet implemented",
-                command
-            );
-            return {
-                success: false,
-                error: "Runtime dispatcher not implemented",
-            };
+            const wasm = getWasmModule();
+
+            if (!wasm || typeof wasm.dispatch_command !== "function") {
+                return {
+                    success: false,
+                    error: "Runtime not initialized or dispatcher unavailable",
+                };
+            }
+
+            try {
+                // Commands are pure data → serialize once
+                const json = JSON.stringify(command);
+
+                // Call into WASM
+                const result = wasm.dispatch_command(json);
+
+                // wasm-bindgen may return JsValue or stringified JSON
+                if (typeof result === "string") {
+                    return JSON.parse(result);
+                }
+
+                if (result && typeof result === "object") {
+                    return result as {
+                        success: boolean;
+                        error?: string;
+                    };
+                }
+
+                return { success: true };
+            } catch (err) {
+                console.error("[CommandCapability] dispatch failed", err);
+                return {
+                    success: false,
+                    error: err instanceof Error ? err.message : String(err),
+                };
+            }
         },
     };
 }
-
 function createViewLifecycleCapability(
     viewId: string
 ): ViewLifecycleCapability {

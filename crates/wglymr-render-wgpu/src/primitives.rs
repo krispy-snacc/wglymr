@@ -244,6 +244,33 @@ impl PrimitiveRenderer {
         self.rect_ranges.push(start..end);
     }
 
+    /// Draw infinite grid in pixel space.
+    /// Grid is stable during pan and scales naturally with zoom.
+    pub fn draw_grid(&mut self, pan: [f32; 2], zoom: f32, viewport: [f32; 2]) {
+        const GRID_WORLD_SPACING: f32 = 100.0;
+        const GRID_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 0.03];
+
+        let spacing_px = GRID_WORLD_SPACING * zoom;
+
+        let offset_x = (pan[0] * zoom) % spacing_px;
+        let offset_y = (pan[1] * zoom) % spacing_px;
+
+        let viewport_width = viewport[0];
+        let viewport_height = viewport[1];
+
+        let mut x = -offset_x;
+        while x <= viewport_width {
+            self.draw_line([x, 0.0], [x, viewport_height], GRID_COLOR);
+            x += spacing_px;
+        }
+
+        let mut y = -offset_y;
+        while y <= viewport_height {
+            self.draw_line([0.0, y], [viewport_width, y], GRID_COLOR);
+            y += spacing_px;
+        }
+    }
+
     pub fn upload(&self, queue: &Queue) {
         if !self.vertices.is_empty() {
             queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&self.vertices));

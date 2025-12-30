@@ -202,3 +202,30 @@ pub fn stop_render_loop() {
         rt.render_loop_mut().stop();
     });
 }
+
+/// Dispatch a command from the frontend to the runtime.
+///
+/// This is the SINGLE ENTRY POINT for all user-initiated actions.
+/// Frontend constructs command JSON and calls this function.
+///
+/// Commands are deserialized from JSON, executed, and the result is logged.
+/// Errors do NOT panic - they are logged and the function returns normally.
+#[wasm_bindgen]
+pub fn dispatch_command(json: &str) {
+    use crate::runtime::commands::{Command, dispatch};
+    // crate::runtime::logging::debug(&format!("Received json command: {:?}", json));
+
+    let command: Command = match serde_json::from_str(json) {
+        Ok(cmd) => cmd,
+        Err(e) => {
+            crate::runtime::logging::error(&format!("Failed to deserialize command: {}", e));
+            return;
+        }
+    };
+
+    EditorRuntime::with(|rt| {
+        if let Err(e) = dispatch(rt, command) {
+            crate::runtime::logging::error(&format!("Command execution failed: {}", e));
+        }
+    });
+}

@@ -113,7 +113,7 @@ impl EditorRuntime {
 
         let state = self
             .views
-            .get(view_id)
+            .get_mut(view_id)
             .ok_or_else(|| RuntimeError::ViewNotFound(view_id.to_string()))?;
 
         let surface = match &state.surface {
@@ -134,8 +134,6 @@ impl EditorRuntime {
             Ok(texture) => texture,
             Err(e) => {
                 logging::error(&format!("Failed to get surface texture: {:?}", e));
-                // TODO: Handle surface loss by recreating surface
-                // This can happen when window is minimized or GPU is reset
                 return Err(RuntimeError::RenderFailed(format!(
                     "Surface texture unavailable: {:?}",
                     e
@@ -147,6 +145,20 @@ impl EditorRuntime {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
+        let renderer = state
+            .renderer
+            .as_mut()
+            .ok_or_else(|| RuntimeError::InvalidState("Renderer not initialized".to_string()))?;
+
+        let pan = state.view.pan();
+        let zoom = state.view.zoom();
+        let viewport = [state.width as f32, state.height as f32];
+
+        renderer.begin_frame();
+        renderer.set_viewport(&gpu.queue, viewport);
+        renderer.draw_grid(pan, zoom, viewport);
+        renderer.upload(&gpu.queue);
+
         let mut encoder = gpu
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -154,7 +166,7 @@ impl EditorRuntime {
             });
 
         {
-            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
@@ -173,6 +185,9 @@ impl EditorRuntime {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
+
+            renderer.render_lines(&mut render_pass);
+            renderer.render_rects(&mut render_pass);
         }
 
         gpu.queue.submit(std::iter::once(encoder.finish()));

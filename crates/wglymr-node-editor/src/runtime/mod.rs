@@ -3,6 +3,7 @@ use std::cell::RefCell;
 pub mod api;
 #[cfg(target_arch = "wasm32")]
 pub mod browser_render_loop;
+pub mod commands;
 pub mod errors;
 pub mod gpu;
 pub mod logging;

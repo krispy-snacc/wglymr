@@ -1,140 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import {
-    GoldenLayout,
-    type ComponentContainer,
-    LayoutConfig as LayoutConfigApi,
-    type LayoutConfig as LayoutConfigType,
-    type JsonValue,
-} from "golden-layout";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { GoldenLayout, type ComponentContainer, type JsonValue } from "golden-layout";
 
 import "golden-layout/dist/css/goldenlayout-base.css";
 
-
-import { PanelShell } from "@/layout/PanelShell";
-import { type EditorType, getEditor } from "@/layout/editorRegistry";
-
-type PanelState = {
-    panelId: string;
-    editorType: EditorType;
-    viewId?: string;
-};
-
-function generatePanelId(): string {
-    return `panel-${Date.now()}-${Math.random().toString(36).slice(2, 2 + 9)}`;
-}
-
-function generateViewId(glymId: string, panelId: string): string {
-    return `${glymId}-${panelId}`;
-}
-
-const STORAGE_KEY = "wglymr.goldenLayout.layout";
-
-function createDefaultLayoutConfig(glymId: string): LayoutConfigType {
-    const panel1 = generatePanelId();
-    const panel2 = generatePanelId();
-    const panel3 = generatePanelId();
-    const panel4 = generatePanelId();
-    const panel5 = generatePanelId();
-
-    return {
-        settings: {
-            reorderEnabled: true,
-            constrainDragToContainer: true,
-        },
-        header: {
-            show: "top",
-        },
-        root: {
-            type: "row",
-            content: [
-                {
-                    type: "column",
-                    content: [
-                        {
-                            type: "component",
-                            componentType: "panel",
-                            title: getEditor("preview").displayName,
-                            componentState: {
-                                panelId: panel1,
-                                editorType: "preview",
-                                viewId: generateViewId(glymId, panel1)
-                            } satisfies PanelState,
-                        },
-                        {
-                            type: "component",
-                            componentType: "panel",
-                            title: getEditor("metadata").displayName,
-                            componentState: {
-                                panelId: panel2,
-                                editorType: "metadata"
-                            } satisfies PanelState,
-                        },
-                    ],
-                },
-                {
-                    type: "column",
-                    content: [
-                        {
-                            type: "component",
-                            componentType: "panel",
-                            title: getEditor("nodeEditor").displayName,
-                            componentState: {
-                                panelId: panel3,
-                                editorType: "nodeEditor",
-                                viewId: generateViewId(glymId, panel3)
-                            } satisfies PanelState,
-                        },
-                        {
-                            type: "stack",
-                            content: [
-                                {
-                                    type: "component",
-                                    componentType: "panel",
-                                    title: getEditor("uniforms").displayName,
-                                    componentState: {
-                                        panelId: panel4,
-                                        editorType: "uniforms"
-                                    } satisfies PanelState,
-                                },
-                                {
-                                    type: "component",
-                                    componentType: "panel",
-                                    title: getEditor("textures").displayName,
-                                    componentState: {
-                                        panelId: panel5,
-                                        editorType: "textures"
-                                    } satisfies PanelState,
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        },
-    };
-}
-
-function safeJsonParse(value: string | null): unknown {
-    if (!value) return undefined;
-    try {
-        return JSON.parse(value);
-    } catch {
-        return undefined;
-    }
-}
-
-
-
-function coerceToLayoutConfig(config: unknown): LayoutConfigType | undefined {
-    if (!config || typeof config !== "object") return undefined;
-    if (LayoutConfigApi.isResolved(config as never)) {
-        return LayoutConfigApi.fromResolved(config as never);
-    }
-    return config as LayoutConfigType;
-}
+import { type EditorType } from "@/layout/editorRegistry";
+import { createDefaultLayoutConfig } from "@/layout/defaultLayout";
+import { loadLayout, saveLayout } from "@/layout/persistence";
+import { createPanelRenderer } from "@/layout/panelRenderer";
+import { createEditorSpawner } from "@/layout/editorSpawner";
+import { injectPlusButtons } from "@/layout/uiEnhancers";
+import { EmptyLayoutOverlay } from "@/layout/EmptyLayoutOverlay";
 
 interface GoldenLayoutHostProps {
     glymId: string;
@@ -145,118 +22,29 @@ export function GoldenLayoutHost({ glymId, onLayoutReady }: GoldenLayoutHostProp
     const hostRef = useRef<HTMLDivElement | null>(null);
     const glRef = useRef<GoldenLayout | null>(null);
     const registerOnceKey = useMemo(() => "registerOnce", []);
+    const [showEmptyOverlay, setShowEmptyOverlay] = useState(false);
 
     useEffect(() => {
         const host = hostRef.current;
         if (!host) return;
 
-        const containerRoots = new Map<ComponentContainer, Root>();
+        let alive = true;
+        let layoutReady = false;
 
         const gl = new GoldenLayout(host);
         glRef.current = gl;
 
-        const mountReactPanel = (container: ComponentContainer, state: JsonValue | undefined) => {
-            const panelState = (state ?? {}) as Partial<PanelState>;
-            const editorType = panelState.editorType as EditorType | undefined;
-
-            if (!editorType) {
-                container.element.textContent = "";
-                return;
-            }
-
-            const editor = getEditor(editorType);
-
-            // Generate panelId if not present
-            let panelId = panelState.panelId;
-            if (!panelId) {
-                panelId = generatePanelId();
-                container.setState({ ...panelState, panelId });
-            }
-
-            // Generate or reuse viewId if the editor requires it
-            let effectiveViewId: string | undefined;
-            if (editor.requiresViewId) {
-                if (panelState.viewId) {
-                    effectiveViewId = panelState.viewId;
-                } else {
-                    effectiveViewId = generateViewId(glymId, panelId);
-                    container.setState({ ...panelState, panelId, viewId: effectiveViewId });
-                }
-            }
-
-            const ensureRoot = () => {
-                const existing = containerRoots.get(container);
-                if (existing) return existing;
-                container.element.textContent = "";
-                const root = createRoot(container.element);
-                containerRoots.set(container, root);
-                container.on("destroy", () => {
-                    const r = containerRoots.get(container);
-                    if (!r) return;
-                    containerRoots.delete(container);
-                    queueMicrotask(() => {
-                        try {
-                            r.unmount();
-                        } catch {
-                            // ignore
-                        }
-                    });
-                });
-                return root;
-            };
-
-            const root = ensureRoot();
-
-            const render = () => {
-                const currentState = container.getState() as Partial<PanelState>;
-                const currentEditorType = (currentState.editorType || editorType) as EditorType;
-                const currentPanelId = currentState.panelId || panelId;
-                const currentViewId = currentState.viewId || effectiveViewId;
-
-                const handleEditorTypeChange = (newEditorType: EditorType) => {
-                    const freshState = container.getState() as Partial<PanelState>;
-                    const newEditor = getEditor(newEditorType);
-
-                    const newState: Partial<PanelState> = {
-                        ...freshState,
-                        panelId: currentPanelId,
-                        editorType: newEditorType,
-                    };
-
-                    if (newEditor.requiresViewId) {
-                        newState.viewId = freshState.viewId || generateViewId(glymId, currentPanelId);
-                    } else {
-                        delete newState.viewId;
-                    }
-
-                    container.setState(newState);
-                    container.setTitle(getEditor(newEditorType).displayName);
-                    render();
-                };
-
-                root.render(
-                    <PanelShell
-                        panelId={currentPanelId}
-                        editorType={currentEditorType}
-                        onEditorTypeChange={handleEditorTypeChange}
-                        viewId={currentViewId}
-                    />
-                );
-            };
-
-            render();
-
-            const rerenderOnStateChange = () => render();
-            container.on("stateChanged", rerenderOnStateChange);
-            container.on("destroy", () => {
-                container.off("stateChanged", rerenderOnStateChange);
-            });
-        };
+        const { mountReactPanel, cleanup } = createPanelRenderer(glymId);
 
         if (!(gl as unknown as { [k: string]: unknown })[registerOnceKey]) {
             (gl as unknown as { [k: string]: unknown })[registerOnceKey] = true;
+
             const ctor = class {
-                constructor(container: ComponentContainer, state: JsonValue | undefined, virtual: boolean) {
+                constructor(
+                    container: ComponentContainer,
+                    state: JsonValue | undefined,
+                    virtual: boolean
+                ) {
                     void virtual;
                     mountReactPanel(container, state);
                 }
@@ -265,27 +53,57 @@ export function GoldenLayoutHost({ glymId, onLayoutReady }: GoldenLayoutHostProp
             gl.registerComponentConstructor("panel", ctor);
         }
 
-        const savedRaw = safeJsonParse(typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null);
-        const savedLayoutConfig = coerceToLayoutConfig(savedRaw);
-        const config = savedLayoutConfig ?? createDefaultLayoutConfig(glymId);
-        try {
-            gl.loadLayout(config);
-        } catch {
-            gl.loadLayout(createDefaultLayoutConfig(glymId));
+        // ---- Load layout --------------------------------------------------
+
+        const saved = loadLayout();
+
+        if (saved !== "EMPTY") {
+            if (saved) {
+                gl.loadLayout(saved);
+            } else {
+                gl.loadLayout(createDefaultLayoutConfig(glymId));
+            }
         }
 
-        const save = () => {
-            try {
-                const resolved = gl.saveLayout();
-                const next = LayoutConfigApi.fromResolved(resolved);
-                window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-            } catch {
-                // ignore
+        layoutReady = true;
+
+        // ---- Empty detection ----------------------------------------------
+
+        function hasAnyComponent(item: any): boolean {
+            if (!item) return false;
+            if (item.type === "component") return true;
+            if (Array.isArray(item.contentItems)) {
+                return item.contentItems.some(hasAnyComponent);
             }
+            return false;
+        }
+
+        function isLayoutEmpty(): boolean {
+            return !hasAnyComponent(gl.rootItem);
+        }
+
+        const syncLayoutState = () => {
+            if (!alive) return;
+            if (!layoutReady) return;
+            if (!gl.isInitialised) return;
+            if (!gl.rootItem) return;
+            console.log("Hello there");
+            queueMicrotask(() => {
+                if (!alive) return;
+
+                const empty = isLayoutEmpty();
+                saveLayout(gl.saveLayout(), empty);
+                setShowEmptyOverlay(empty);
+                injectPlusButtons(gl, glymId);
+            });
         };
-        gl.on("stateChanged", save);
+
+        gl.on("__all", syncLayoutState);
+
+        // ---- Resize -------------------------------------------------------
 
         const resize = () => {
+            if (!alive) return;
             gl.setSize(host.clientWidth, host.clientHeight);
             gl.updateRootSize(true);
         };
@@ -294,141 +112,49 @@ export function GoldenLayoutHost({ glymId, onLayoutReady }: GoldenLayoutHostProp
         const ro = new ResizeObserver(resize);
         ro.observe(host);
 
-        const openEditor = (editorType: EditorType) => {
-            const editor = getEditor(editorType);
-            const panelId = generatePanelId();
-            const newPanelState: PanelState = {
-                panelId,
-                editorType,
-            };
+        setTimeout(() => {
+            if (!alive) return;
+            injectPlusButtons(gl, glymId);
+            setShowEmptyOverlay(isLayoutEmpty());
+        }, 100);
 
-            if (editor.requiresViewId) {
-                newPanelState.viewId = generateViewId(glymId, panelId);
-            }
+        const { openEditor } = createEditorSpawner(gl, glymId);
+        onLayoutReady?.(openEditor);
 
-            try {
-                gl.addComponent("panel", newPanelState, editor.displayName);
-            } catch (e) {
-                console.error("Failed to add new editor panel:", e);
-            }
-        };
-
-        // Inject "+" buttons into tab bars
-        const injectPlusButtons = () => {
-            // Find all stacks in the layout
-            const findAllStacks = (item: any): any[] => {
-                const stacks: any[] = [];
-                if (item.isStack) {
-                    stacks.push(item);
-                }
-                if (item.contentItems) {
-                    for (const child of item.contentItems) {
-                        stacks.push(...findAllStacks(child));
-                    }
-                }
-                return stacks;
-            };
-
-            const allStacks = gl.rootItem ? findAllStacks(gl.rootItem) : [];
-
-            // For each stack, find its header and add a button
-            allStacks.forEach((stack) => {
-                if (!stack.header?.element) return;
-
-                const header = stack.header.element;
-                const tabsContainer = header.querySelector(".lm_tabs");
-                if (!tabsContainer) return;
-
-                // Check if we already added a button
-                if (tabsContainer.querySelector(".lm_add_tab_btn")) return;
-
-                const addBtn = document.createElement("button");
-                addBtn.className = "lm_add_tab_btn";
-                addBtn.setAttribute("title", "Add new tab");
-                addBtn.innerHTML = "+";
-
-                // Store stack reference directly on button
-                (addBtn as any).__stack = stack;
-
-                addBtn.onclick = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    const targetStack = (e.currentTarget as any).__stack;
-
-                    if (!targetStack) {
-                        console.error("No stack reference found on button");
-                        return;
-                    }
-
-                    try {
-                        const newEditorType: EditorType = "uniforms";
-                        const newEditor = getEditor(newEditorType);
-                        const panelId = generatePanelId();
-
-                        const newPanelState: PanelState = {
-                            panelId,
-                            editorType: newEditorType,
-                        };
-
-                        if (newEditor.requiresViewId) {
-                            newPanelState.viewId = generateViewId(glymId, panelId);
-                        }
-
-                        const componentConfig = {
-                            type: "component" as const,
-                            componentType: "panel",
-                            title: newEditor.displayName,
-                            componentState: newPanelState,
-                        };
-
-                        // Use addItem instead of newItem + addChild
-                        targetStack.addItem(componentConfig);
-                    } catch (error) {
-                        console.error("Failed to add tab:", error);
-                    }
-                };
-
-                tabsContainer.appendChild(addBtn);
-            });
-        };
-
-        // Initial injection
-        setTimeout(injectPlusButtons, 100);
-
-        // Re-inject when layout changes
-        gl.on("stateChanged", () => {
-            setTimeout(injectPlusButtons, 50);
-        });
-
-        if (onLayoutReady) {
-            onLayoutReady(openEditor);
-        }
+        // ---- Cleanup ------------------------------------------------------
 
         return () => {
+            alive = false;
             ro.disconnect();
-            gl.off("stateChanged", save);
             gl.destroy();
             glRef.current = null;
-            const roots = Array.from(containerRoots.values());
-            containerRoots.clear();
-            queueMicrotask(() => {
-                for (const root of roots) {
-                    try {
-                        root.unmount();
-                    } catch {
-                        // ignore
-                    }
-                }
-            });
+            cleanup();
         };
-    }, [registerOnceKey, glymId]);
+    }, [registerOnceKey, glymId, onLayoutReady]);
+
+    const handleCreatePanel = (editorType: EditorType) => {
+        const gl = glRef.current;
+        if (!gl) return;
+
+        const { openEditor } = createEditorSpawner(gl, glymId);
+        openEditor(editorType);
+    };
+
+    const handleRestoreDefaultLayout = () => {
+        const gl = glRef.current;
+        if (!gl) return;
+
+        gl.loadLayout(createDefaultLayoutConfig(glymId));
+        saveLayout(gl.saveLayout(), false);
+    };
+
 
     return (
-        <div
-            ref={hostRef}
-            className="w-full h-full min-h-0"
-            style={{ height: "100%" }}
-        />
+        <div className="relative w-full h-full min-h-0">
+            <div ref={hostRef} className="w-full h-full min-h-0" />
+            {showEmptyOverlay && (
+                <EmptyLayoutOverlay onCreatePanel={handleCreatePanel} onRestoreDefaultLayout={handleRestoreDefaultLayout} />
+            )}
+        </div>
     );
 }

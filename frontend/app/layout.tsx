@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AnimatedBackground } from "@/layout/AnimatedBackground";
+import { AnimatedBackground } from "@/ui/AnimatedBackground";
 import { BACKGROUND_COLOR, THEME } from "./theme";
 import "./globals.css";
 

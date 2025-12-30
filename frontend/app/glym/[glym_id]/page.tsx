@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from "react";
 import { Navbar } from "@/ui/Navbar";
-import { LoadingScreen } from "@/layout/LoadingScreen";
+import { LoadingScreen } from "@/ui/LoadingScreen";
 import { GoldenLayoutHost } from "@/layout/GoldenLayoutHost";
 import { MobileLayoutHost } from "@/layout/MobileLayoutHost";
 import { GlymProvider } from "@/context/GlymContext";

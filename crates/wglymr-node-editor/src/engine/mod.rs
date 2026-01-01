@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use crate::document::adapter::DocumentAdapter;
-use crate::editor::layout::build_render_model;
+use crate::editor::culling::{compute_view_bounds, is_edge_visible, is_node_visible};
+use crate::editor::layout::{build_render_model, NodeLayoutConstants};
 use crate::editor::renderer::NodeEditorRenderer;
 use crate::editor::wgpu_renderer::WgpuNodeEditorRenderer;
 
@@ -109,16 +110,22 @@ impl EditorEngine {
             None => return,
         };
 
-        let (render_nodes, render_edges) = build_render_model(self.document.as_ref(), view);
+        let constants = NodeLayoutConstants::default();
+        let (render_nodes, render_edges) = build_render_model(self.document.as_ref(), &constants);
+        let view_bounds = compute_view_bounds(view);
 
         let mut renderer = WgpuNodeEditorRenderer::new(primitive_renderer);
 
         for edge in &render_edges {
-            renderer.draw_edge(edge);
+            if is_edge_visible(edge, &view_bounds) {
+                renderer.draw_edge(edge, view);
+            }
         }
 
         for node in &render_nodes {
-            renderer.draw_node(node);
+            if is_node_visible(node, &view_bounds) {
+                renderer.draw_node(node, view);
+            }
         }
 
         primitive_renderer.upload(queue);

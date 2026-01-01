@@ -1,7 +1,5 @@
-// Editor UI layer
-// Manages view state, user interaction, and rendering concerns
-
+pub mod culling;
 pub mod layout;
+pub mod render_model;
 pub mod renderer;
-pub mod view_state;
 pub mod wgpu_renderer;

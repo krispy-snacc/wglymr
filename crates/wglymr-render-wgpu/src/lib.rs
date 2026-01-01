@@ -1,12 +1,17 @@
+mod batch;
 mod buffers;
 mod device;
+mod draw;
 mod execute;
+mod gpu;
 mod pipeline;
-mod primitives;
+mod renderer;
 
+pub use batch::PrimitiveBatch;
 pub use device::{create_gpu_context, GpuContext};
+pub use draw::draw_grid;
 pub use execute::execute_wgsl_f32;
-pub use primitives::PrimitiveRenderer;
+pub use renderer::PrimitiveRenderer;
 
 #[cfg(test)]
 mod tests {

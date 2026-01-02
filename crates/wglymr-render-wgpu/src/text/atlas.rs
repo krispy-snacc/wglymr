@@ -12,7 +12,6 @@ pub struct GlyphKey {
 pub struct GlyphEntry {
     pub uv_min: [f32; 2],
     pub uv_max: [f32; 2],
-    pub size_px: [u16; 2],
 }
 
 struct AtlasRegion {
@@ -114,7 +113,6 @@ impl GlyphAtlas {
                 (x + width as u32) as f32 / atlas_size_f,
                 (y + height as u32) as f32 / atlas_size_f,
             ],
-            size_px: [width, height],
         };
 
         self.entries.insert(key, entry);

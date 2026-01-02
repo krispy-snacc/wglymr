@@ -193,7 +193,7 @@ impl EditorRuntime {
         text_renderer.set_layer(3);
 
         {
-            use crate::editor::text::CosmicTextEngine;
+            use crate::editor::text::{CosmicTextEngine, TEXT, TEXT_SHADOW, TextShadow};
 
             let mut cosmic_engine = CosmicTextEngine::new();
 
@@ -204,6 +204,17 @@ impl EditorRuntime {
             let (glyphs, font_size) =
                 cosmic_engine.shape_text("Hello WGlymr", world_font_size, world_pos);
 
+            let shadow = Some(TextShadow {
+                offset_px: [
+                    world_to_screen_size(-0.15, &state.view),
+                    world_to_screen_size(0.3, &state.view),
+                ],
+                color: [0.0, 0.0, 0.0, 0.6],
+                layer: TEXT_SHADOW,
+                scale: 1.0,
+                blur: world_to_screen_size(0.7, &state.view),
+            });
+
             cosmic_engine.render_glyphs(
                 &glyphs,
                 font_size,
@@ -212,7 +223,8 @@ impl EditorRuntime {
                 &gpu.queue,
                 &gpu.device,
                 color,
-                3,
+                TEXT,
+                shadow,
             );
         }
 

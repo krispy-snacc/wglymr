@@ -5,6 +5,18 @@ use wglymr_render_wgpu::{GpuGlyph, TextRenderer};
 
 use crate::engine::EditorView;
 
+pub const TEXT_SHADOW: u8 = 3;
+pub const TEXT: u8 = 4;
+
+#[derive(Debug, Clone, Copy)]
+pub struct TextShadow {
+    pub offset_px: [f32; 2],
+    pub color: [f32; 4],
+    pub layer: u8,
+    pub scale: f32,
+    pub blur: f32,
+}
+
 /// Baseline-positioned glyph identity in world space.
 #[derive(Debug, Clone)]
 pub struct CosmicGlyph {
@@ -92,8 +104,8 @@ impl CosmicTextEngine {
         (glyphs, world_font_size)
     }
 
-    /// Render shaped glyphs to screen space.
-    /// Handles world-to-screen transformation and atlas upload.
+    /// Render shaped glyphs to screen space with optional shadow.
+    /// If shadow is provided, glyphs are rendered twice: shadow first, then main text.
     pub fn render_glyphs(
         &mut self,
         glyphs: &[CosmicGlyph],
@@ -104,13 +116,96 @@ impl CosmicTextEngine {
         device: &wgpu::Device,
         color: [f32; 4],
         layer: u8,
+        shadow: Option<TextShadow>,
     ) {
         let zoom = view.zoom();
         let screen_font_size = world_font_size * zoom;
 
+        // Render shadow pass first (if enabled)
+        if let Some(shadow_config) = shadow {
+            let shadow_font_size = screen_font_size * shadow_config.scale;
+
+            if shadow_config.blur > 0.0 {
+                // Multi-pass blur: render shadow multiple times with offset variations
+                let samples = (shadow_config.blur * 2.0).max(1.0) as i32;
+                let blur_radius = shadow_config.blur;
+                let alpha_per_sample = shadow_config.color[3] / samples as f32;
+
+                for i in 0..samples {
+                    let angle = (i as f32 / samples as f32) * std::f32::consts::TAU;
+                    let radius_factor = (i as f32 / samples as f32).sqrt();
+                    let blur_offset = [
+                        shadow_config.offset_px[0] + angle.cos() * blur_radius * radius_factor,
+                        shadow_config.offset_px[1] + angle.sin() * blur_radius * radius_factor,
+                    ];
+                    let blur_color = [
+                        shadow_config.color[0],
+                        shadow_config.color[1],
+                        shadow_config.color[2],
+                        alpha_per_sample,
+                    ];
+
+                    self.render_pass(
+                        glyphs,
+                        shadow_font_size,
+                        view,
+                        text_renderer,
+                        queue,
+                        device,
+                        blur_color,
+                        shadow_config.layer,
+                        Some(blur_offset),
+                    );
+                }
+            } else {
+                // No blur: single shadow pass
+                self.render_pass(
+                    glyphs,
+                    shadow_font_size,
+                    view,
+                    text_renderer,
+                    queue,
+                    device,
+                    shadow_config.color,
+                    shadow_config.layer,
+                    Some(shadow_config.offset_px),
+                );
+            }
+        }
+
+        // Render main text pass
+        self.render_pass(
+            glyphs,
+            screen_font_size,
+            view,
+            text_renderer,
+            queue,
+            device,
+            color,
+            layer,
+            None,
+        );
+    }
+
+    fn render_pass(
+        &mut self,
+        glyphs: &[CosmicGlyph],
+        screen_font_size: f32,
+        view: &EditorView,
+        text_renderer: &mut TextRenderer,
+        queue: &wgpu::Queue,
+        device: &wgpu::Device,
+        color: [f32; 4],
+        layer: u8,
+        offset: Option<[f32; 2]>,
+    ) {
         for glyph in glyphs {
             let [screen_baseline_x, screen_baseline_y] =
                 world_to_screen(glyph.world_baseline, view);
+
+            let [offset_x, offset_y] = offset.unwrap_or([0.0, 0.0]);
+            let final_x = screen_baseline_x + offset_x;
+            let final_y = screen_baseline_y + offset_y;
 
             let cache_key = cosmic_text::CacheKey {
                 font_id: glyph.font_id,
@@ -144,8 +239,8 @@ impl CosmicTextEngine {
                 }
 
                 if let Some(entry) = text_renderer.atlas().get(&glyph_key) {
-                    let quad_x = (screen_baseline_x + image.placement.left as f32).round();
-                    let quad_y = (screen_baseline_y - image.placement.top as f32).round();
+                    let quad_x = (final_x + image.placement.left as f32).round();
+                    let quad_y = (final_y - image.placement.top as f32).round();
                     let quad_width = image.placement.width as f32;
                     let quad_height = image.placement.height as f32;
 

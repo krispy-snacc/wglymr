@@ -33,7 +33,7 @@ pub fn read_buffer_f32(device: &Device, queue: &Queue, staging: &Buffer) -> f32 
         sender.send(result).unwrap();
     });
 
-    device.poll(wgpu::Maintain::Wait);
+    let _ = device.poll(wgpu::PollType::wait_indefinitely());
     receiver.recv().unwrap().expect("Failed to map buffer");
 
     let data = buffer_slice.get_mapped_range();

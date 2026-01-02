@@ -6,12 +6,15 @@ mod execute;
 mod gpu;
 mod pipeline;
 mod renderer;
+pub mod text;
 
 pub use batch::PrimitiveBatch;
 pub use device::{create_gpu_context, GpuContext};
 pub use draw::draw_grid;
 pub use execute::execute_wgsl_f32;
+pub use gpu::ViewportResources;
 pub use renderer::PrimitiveRenderer;
+pub use text::{GlyphAtlas, GlyphEntry, GlyphKey, GpuGlyph, TextBatch, TextPipeline, TextRenderer};
 
 #[cfg(test)]
 mod tests {

@@ -16,17 +16,12 @@ use gpu::GpuContext;
 use scheduler::Scheduler;
 use view_registry::ViewRegistry;
 
-// EditorRuntime is stored in thread_local storage.
-// In WASM, this is effectively a single global runtime.
-
 pub struct EditorRuntime {
     gpu: Option<GpuContext>,
     views: ViewRegistry,
     scheduler: Scheduler,
 
-    // Platform-specific render scheduler.
-    // In WASM builds, this is requestAnimationFrame-based.
-    // Native backends will provide a different implementation.
+    #[cfg(target_arch = "wasm32")]
     render_loop: RenderLoop,
 }
 
@@ -36,6 +31,7 @@ impl EditorRuntime {
             gpu: None,
             views: ViewRegistry::new(),
             scheduler: Scheduler::new(),
+            #[cfg(target_arch = "wasm32")]
             render_loop: RenderLoop::new(),
         }
     }
@@ -74,6 +70,7 @@ impl EditorRuntime {
         &mut self.scheduler
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn render_loop_mut(&mut self) -> &mut RenderLoop {
         &mut self.render_loop
     }

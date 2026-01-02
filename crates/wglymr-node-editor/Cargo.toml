@@ -7,7 +7,7 @@ edition = "2024"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wgpu = "23.0"
+wgpu = "27.0"
 wglymr-render-wgpu = { path = "../wglymr-render-wgpu" }
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"

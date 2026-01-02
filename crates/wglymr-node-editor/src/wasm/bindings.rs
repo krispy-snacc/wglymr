@@ -49,7 +49,7 @@ pub fn init_engine() {
 
 #[wasm_bindgen]
 pub async fn init_gpu() -> Result<(), JsValue> {
-    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
         backends: wgpu::Backends::BROWSER_WEBGPU | wgpu::Backends::GL,
         ..Default::default()
     });
@@ -61,18 +61,17 @@ pub async fn init_gpu() -> Result<(), JsValue> {
             force_fallback_adapter: false,
         })
         .await
-        .ok_or_else(|| JsValue::from_str("Failed to request adapter"))?;
+        .map_err(|e| JsValue::from_str(&format!("Failed to request adapter: {:?}", e)))?;
 
     let (device, queue) = adapter
-        .request_device(
-            &wgpu::DeviceDescriptor {
-                label: Some("Device"),
-                required_features: wgpu::Features::empty(),
-                required_limits: wgpu::Limits::downlevel_webgl2_defaults(),
-                memory_hints: Default::default(),
-            },
-            None,
-        )
+        .request_device(&wgpu::DeviceDescriptor {
+            label: Some("Device"),
+            required_features: wgpu::Features::empty(),
+            required_limits: wgpu::Limits::downlevel_webgl2_defaults(),
+            memory_hints: Default::default(),
+            trace: wgpu::Trace::Off,
+            experimental_features: wgpu::ExperimentalFeatures::default(),
+        })
         .await
         .map_err(|e| JsValue::from_str(&format!("Failed to request device: {:?}", e)))?;
 

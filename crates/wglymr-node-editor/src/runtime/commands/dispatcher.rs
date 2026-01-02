@@ -69,8 +69,8 @@ fn handle_view_zoom(
 
     let zoom_old = state.view.zoom();
     let pan_world = state.view.pan(); // NOW interpreted as world-space center
-    let width = state.width as f32;
-    let height = state.height as f32;
+    let width = state.view.width() as f32;
+    let height = state.view.height() as f32;
 
     const MIN_ZOOM: f32 = 0.1;
     const MAX_ZOOM: f32 = 10.0;
@@ -84,12 +84,12 @@ fn handle_view_zoom(
     };
 
     // Convert cursor from screen → world (BEFORE zoom)
-    let world_under_cursor_x = cx / zoom_old + pan_world[0];
-    let world_under_cursor_y = cy / zoom_old + pan_world[1];
+    let world_under_cursor_x = (cx - width * 0.5) / zoom_old + pan_world[0];
+    let world_under_cursor_y = (cy - height * 0.5) / zoom_old + pan_world[1];
 
     // Adjust pan so the same world point stays under cursor
-    let new_pan_x = world_under_cursor_x - cx / zoom_new;
-    let new_pan_y = world_under_cursor_y - cy / zoom_new;
+    let new_pan_x = world_under_cursor_x - (cx - width * 0.5) / zoom_new;
+    let new_pan_y = world_under_cursor_y - (cy - height * 0.5) / zoom_new;
 
     runtime
         .views_mut()

@@ -1,3 +1,5 @@
+use crate::editor::wgpu_renderer::world_to_screen;
+
 use super::EditorRuntime;
 use super::errors::RuntimeError;
 
@@ -150,14 +152,54 @@ impl EditorRuntime {
             .as_mut()
             .ok_or_else(|| RuntimeError::InvalidState("Renderer not initialized".to_string()))?;
 
+        let text_renderer = state.text_renderer.as_mut().ok_or_else(|| {
+            RuntimeError::InvalidState("Text renderer not initialized".to_string())
+        })?;
+
         let pan = state.view.pan();
         let zoom = state.view.zoom();
-        let viewport = [state.width as f32, state.height as f32];
+        let viewport = [state.view.width() as f32, state.view.height() as f32];
 
         renderer.begin_frame();
         renderer.set_viewport(&gpu.queue, viewport);
+        renderer.draw_rect(
+            world_to_screen([0.0, 0.0], &state.view),
+            world_to_screen([100.0, 100.0], &state.view),
+            [1.0, 0.0, 0.0, 1.0],
+        );
         renderer.draw_grid(pan, zoom, viewport);
         renderer.upload(&gpu.queue);
+
+        text_renderer.begin_frame();
+        text_renderer.set_viewport(&gpu.queue, viewport);
+        text_renderer.set_layer(3);
+
+        {
+            use crate::editor::text::CosmicTextEngine;
+
+            let mut cosmic_engine = CosmicTextEngine::new();
+
+            let world_font_size = 12.0;
+            let world_pos = [0.0, 0.0];
+            let color = [1.0, 1.0, 1.0, 1.0];
+
+            let (glyphs, font_size) =
+                cosmic_engine.shape_text("Hello WGlymr", world_font_size, world_pos);
+
+            cosmic_engine.render_glyphs(
+                &glyphs,
+                font_size,
+                &state.view,
+                text_renderer,
+                &gpu.queue,
+                &gpu.device,
+                color,
+                3,
+            );
+        }
+
+        text_renderer.finish_batch();
+        text_renderer.upload(&gpu.queue);
 
         let mut encoder = gpu
             .device
@@ -189,6 +231,7 @@ impl EditorRuntime {
 
             renderer.render_lines(&mut render_pass);
             renderer.render_rects(&mut render_pass);
+            text_renderer.render(&mut render_pass);
         }
 
         gpu.queue.submit(std::iter::once(encoder.finish()));

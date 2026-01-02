@@ -2,7 +2,7 @@ use super::errors::RuntimeError;
 use super::gpu::SurfaceHandle;
 use crate::engine::EditorView;
 use std::collections::HashMap;
-use wglymr_render_wgpu::PrimitiveRenderer;
+use wglymr_render_wgpu::{PrimitiveRenderer, TextRenderer};
 
 pub type ViewId = String;
 
@@ -13,8 +13,7 @@ pub struct ViewState {
     pub surface: Option<SurfaceHandle>,
     pub config: Option<wgpu::SurfaceConfiguration>,
     pub renderer: Option<PrimitiveRenderer>,
-    pub width: u32,
-    pub height: u32,
+    pub text_renderer: Option<TextRenderer>,
 }
 
 impl ViewState {
@@ -26,8 +25,7 @@ impl ViewState {
             surface: None,
             config: None,
             renderer: None,
-            width: 0,
-            height: 0,
+            text_renderer: None,
         }
     }
 }
@@ -110,12 +108,14 @@ impl ViewRegistry {
         wgpu_surface.configure(&gpu.device, &config);
 
         let renderer = PrimitiveRenderer::new(&gpu.device, format);
+        let viewport_resources = wglymr_render_wgpu::ViewportResources::new(&gpu.device);
+        let text_renderer = TextRenderer::new(&gpu.device, format, &viewport_resources);
 
         state.surface = Some(surface);
         state.config = Some(config);
         state.renderer = Some(renderer);
-        state.width = width;
-        state.height = height;
+        state.text_renderer = Some(text_renderer);
+        state.view.resize(width, height);
         state.attached = true;
 
         Ok(())
@@ -130,6 +130,7 @@ impl ViewRegistry {
         state.surface = None;
         state.config = None;
         state.renderer = None;
+        state.text_renderer = None;
         state.attached = false;
         Ok(())
     }
@@ -146,8 +147,7 @@ impl ViewRegistry {
             .get_mut(id)
             .ok_or_else(|| RuntimeError::ViewNotFound(id.to_string()))?;
 
-        state.width = width;
-        state.height = height;
+        state.view.resize(width, height);
 
         if state.attached {
             if let (Some(surface), Some(config)) = (&state.surface, &mut state.config) {

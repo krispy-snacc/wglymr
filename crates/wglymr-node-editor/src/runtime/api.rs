@@ -1,4 +1,6 @@
-use crate::editor::wgpu_renderer::world_to_screen;
+use wglymr_render_wgpu::RoundedRect;
+
+use crate::editor::wgpu_renderer::{world_to_screen, world_to_screen_size};
 
 use super::EditorRuntime;
 use super::errors::RuntimeError;
@@ -156,19 +158,35 @@ impl EditorRuntime {
             RuntimeError::InvalidState("Text renderer not initialized".to_string())
         })?;
 
+        let sdf_renderer = state.sdf_renderer.as_mut().ok_or_else(|| {
+            RuntimeError::InvalidState("Sdf renderer not initialized".to_string())
+        })?;
+
         let pan = state.view.pan();
         let zoom = state.view.zoom();
         let viewport = [state.view.width() as f32, state.view.height() as f32];
 
         renderer.begin_frame();
         renderer.set_viewport(&gpu.queue, viewport);
-        renderer.draw_rect(
-            world_to_screen([0.0, 0.0], &state.view),
-            world_to_screen([100.0, 100.0], &state.view),
-            [1.0, 0.0, 0.0, 1.0],
-        );
+
         renderer.draw_grid(pan, zoom, viewport);
         renderer.upload(&gpu.queue);
+
+        sdf_renderer.begin_frame();
+        sdf_renderer.set_viewport(&gpu.queue, viewport);
+        sdf_renderer.set_layer(2);
+
+        sdf_renderer.draw_rounded_rect(&RoundedRect {
+            min: world_to_screen([-50.0, -50.0], &state.view),
+            max: world_to_screen([50.0, 50.0], &state.view),
+            radius: world_to_screen_size(4.0, &state.view),
+            border_width: world_to_screen_size(1.0, &state.view),
+            fill_color: [48.0 / 255.0, 48.0 / 255.0, 48.0 / 255.0, 1.0],
+            border_color: [0.0, 0.0, 0.0, 1.0],
+        });
+
+        sdf_renderer.finish_batch();
+        sdf_renderer.upload(&gpu.queue);
 
         text_renderer.begin_frame();
         text_renderer.set_viewport(&gpu.queue, viewport);
@@ -180,7 +198,7 @@ impl EditorRuntime {
             let mut cosmic_engine = CosmicTextEngine::new();
 
             let world_font_size = 12.0;
-            let world_pos = [0.0, 0.0];
+            let world_pos = [-48.0, -48.0];
             let color = [1.0, 1.0, 1.0, 1.0];
 
             let (glyphs, font_size) =
@@ -231,6 +249,7 @@ impl EditorRuntime {
 
             renderer.render_lines(&mut render_pass);
             renderer.render_rects(&mut render_pass);
+            sdf_renderer.render(&mut render_pass);
             text_renderer.render(&mut render_pass);
         }
 

@@ -22,7 +22,7 @@ export type InputRouter = (
     context: InputContext
 ) => AnyCommand | null;
 
-// Mouse wheel → zoom command
+// Mouse wheel => zoom command
 export function routeWheelEvent(
     event: WheelEvent,
     context: InputContext
@@ -65,7 +65,7 @@ export function routeWheelEvent(
     return cmd.zoomView(context.viewId, zoomFactor, localX, localY);
 }
 
-// Mouse drag with middle button → pan command
+// Mouse drag with middle button => pan command
 export function routePointerDrag(
     dx: number,
     dy: number,
@@ -79,7 +79,7 @@ export function routePointerDrag(
     return null;
 }
 
-// Keyboard shortcuts → various commands
+// Keyboard shortcuts => various commands
 export function routeKeyboardEvent(
     event: KeyboardEvent,
     context: InputContext
@@ -107,7 +107,7 @@ export function routeKeyboardEvent(
     return null;
 }
 
-// Context menu → add node command
+// Context menu => add node command
 export function routeAddNodeAction(
     nodeType: string,
     position: { x: number; y: number },

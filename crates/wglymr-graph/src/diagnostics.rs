@@ -166,7 +166,10 @@ pub fn diagnostics_from_conversion_error(err: &ConversionError) -> Vec<Diagnosti
 
 /// Create a warning diagnostic for an inserted conversion
 pub fn warning_conversion_inserted(socket: SocketId, from: IrType, to: IrType) -> Diagnostic {
-    Diagnostic::warning_at_socket(socket, format!("Inserted {:?} → {:?} conversion", from, to))
+    Diagnostic::warning_at_socket(
+        socket,
+        format!("Inserted {:?} => {:?} conversion", from, to),
+    )
 }
 
 /// Create a warning diagnostic for default value usage

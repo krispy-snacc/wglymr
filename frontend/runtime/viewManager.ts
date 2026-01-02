@@ -1,4 +1,4 @@
-// View lifecycle: create → attach → setVisible → resize → requestRender → detach → destroy
+// View lifecycle: create => attach => setVisible => resize => requestRender => detach => destroy
 
 import { getWasmModule } from "./editorRuntime";
 

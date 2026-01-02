@@ -38,7 +38,7 @@ fn handle_view_pan(
     let pan = view_state.view.pan();
     let zoom = view_state.view.zoom();
 
-    // Convert screen-space delta → world-space delta
+    // Convert screen-space delta => world-space delta
     let world_dx = dx / zoom;
     let world_dy = dy / zoom;
 
@@ -83,7 +83,7 @@ fn handle_view_zoom(
         _ => (width * 0.5, height * 0.5),
     };
 
-    // Convert cursor from screen → world (BEFORE zoom)
+    // Convert cursor from screen => world (BEFORE zoom)
     let world_under_cursor_x = (cx - width * 0.5) / zoom_old + pan_world[0];
     let world_under_cursor_y = (cy - height * 0.5) / zoom_old + pan_world[1];
 

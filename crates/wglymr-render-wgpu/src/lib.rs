@@ -6,14 +6,16 @@ mod execute;
 mod gpu;
 mod pipeline;
 mod renderer;
+pub mod sdf;
 pub mod text;
 
 pub use batch::PrimitiveBatch;
-pub use device::{create_gpu_context, GpuContext};
+pub use device::{GpuContext, create_gpu_context};
 pub use draw::draw_grid;
 pub use execute::execute_wgsl_f32;
 pub use gpu::ViewportResources;
 pub use renderer::PrimitiveRenderer;
+pub use sdf::{RoundedRect, SdfBatch, SdfRenderer, SdfVertex};
 pub use text::{GlyphAtlas, GlyphEntry, GlyphKey, GpuGlyph, TextBatch, TextPipeline, TextRenderer};
 
 #[cfg(test)]

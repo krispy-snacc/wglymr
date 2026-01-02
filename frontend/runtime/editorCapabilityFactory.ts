@@ -54,7 +54,7 @@ function createCommandCapability(_viewId: string): CommandCapability {
             }
 
             try {
-                // Commands are pure data → serialize once
+                // Commands are pure data => serialize once
                 const json = JSON.stringify(command);
 
                 // Call into WASM

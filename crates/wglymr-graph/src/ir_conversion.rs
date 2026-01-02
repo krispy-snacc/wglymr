@@ -31,8 +31,8 @@ fn is_valid_conversion(from: IrType, to: IrType) -> bool {
 /// and a valid conversion exists, a Convert instruction is inserted.
 ///
 /// Supported conversions:
-/// - Float → Vec2/Vec3/Vec4/Color (splat)
-/// - Vec3 → Color (append alpha = 1.0)
+/// - Float => Vec2/Vec3/Vec4/Color (splat)
+/// - Vec3 => Color (append alpha = 1.0)
 ///
 /// All other type mismatches result in an error.
 pub fn insert_conversions(ir: IrProgram) -> Result<IrProgram, ConversionError> {

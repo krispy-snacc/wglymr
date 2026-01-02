@@ -144,8 +144,8 @@ impl CosmicTextEngine {
                 }
 
                 if let Some(entry) = text_renderer.atlas().get(&glyph_key) {
-                    let quad_x = screen_baseline_x + image.placement.left as f32;
-                    let quad_y = screen_baseline_y - image.placement.top as f32;
+                    let quad_x = (screen_baseline_x + image.placement.left as f32).round();
+                    let quad_y = (screen_baseline_y - image.placement.top as f32).round();
                     let quad_width = image.placement.width as f32;
                     let quad_height = image.placement.height as f32;
 

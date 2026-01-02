@@ -2,7 +2,7 @@ use super::errors::RuntimeError;
 use super::gpu::SurfaceHandle;
 use crate::engine::EditorView;
 use std::collections::HashMap;
-use wglymr_render_wgpu::{PrimitiveRenderer, TextRenderer};
+use wglymr_render_wgpu::{PrimitiveRenderer, SdfRenderer, TextRenderer};
 
 pub type ViewId = String;
 
@@ -14,6 +14,7 @@ pub struct ViewState {
     pub config: Option<wgpu::SurfaceConfiguration>,
     pub renderer: Option<PrimitiveRenderer>,
     pub text_renderer: Option<TextRenderer>,
+    pub sdf_renderer: Option<SdfRenderer>,
 }
 
 impl ViewState {
@@ -26,6 +27,7 @@ impl ViewState {
             config: None,
             renderer: None,
             text_renderer: None,
+            sdf_renderer: None,
         }
     }
 }
@@ -110,11 +112,13 @@ impl ViewRegistry {
         let renderer = PrimitiveRenderer::new(&gpu.device, format);
         let viewport_resources = wglymr_render_wgpu::ViewportResources::new(&gpu.device);
         let text_renderer = TextRenderer::new(&gpu.device, format, &viewport_resources);
+        let sdf_renderer = SdfRenderer::new(&gpu.device, format);
 
         state.surface = Some(surface);
         state.config = Some(config);
         state.renderer = Some(renderer);
         state.text_renderer = Some(text_renderer);
+        state.sdf_renderer = Some(sdf_renderer);
         state.view.resize(width, height);
         state.attached = true;
 
@@ -131,6 +135,7 @@ impl ViewRegistry {
         state.config = None;
         state.renderer = None;
         state.text_renderer = None;
+        state.sdf_renderer = None;
         state.attached = false;
         Ok(())
     }

@@ -2,7 +2,7 @@ use super::errors::RuntimeError;
 use super::gpu::SurfaceHandle;
 use crate::engine::EditorView;
 use std::collections::HashMap;
-use wglymr_render_wgpu::{PrimitiveRenderer, SdfRenderer, text::MSDFTextRenderer};
+use wglymr_render_wgpu::{PrimitiveRenderer, SdfRenderer, SdfTextRenderer};
 
 pub type ViewId = String;
 
@@ -14,7 +14,7 @@ pub struct ViewState {
     pub config: Option<wgpu::SurfaceConfiguration>,
     pub renderer: Option<PrimitiveRenderer>,
     pub sdf_renderer: Option<SdfRenderer>,
-    pub msdf_text_renderer: Option<MSDFTextRenderer>,
+    pub sdf_text_renderer: Option<SdfTextRenderer>,
 }
 
 impl ViewState {
@@ -27,7 +27,7 @@ impl ViewState {
             config: None,
             renderer: None,
             sdf_renderer: None,
-            msdf_text_renderer: None,
+            sdf_text_renderer: None,
         }
     }
 }
@@ -111,23 +111,13 @@ impl ViewRegistry {
 
         let renderer = PrimitiveRenderer::new(&gpu.device, format);
         let sdf_renderer = SdfRenderer::new(&gpu.device, format);
-        let mut msdf_text_renderer = MSDFTextRenderer::new(&gpu.device, format);
-
-        // Load and set font for text renderer
-        match crate::editor::text::load_roboto_msdf(&gpu.device, &gpu.queue) {
-            Ok(font) => {
-                msdf_text_renderer.set_font(&gpu.device, font);
-            }
-            Err(e) => {
-                crate::runtime::logging::log(&format!("Failed to load MSDF font: {}", e));
-            }
-        }
+        let sdf_text_renderer = SdfTextRenderer::new(&gpu.device, format);
 
         state.surface = Some(surface);
         state.config = Some(config);
         state.renderer = Some(renderer);
         state.sdf_renderer = Some(sdf_renderer);
-        state.msdf_text_renderer = Some(msdf_text_renderer);
+        state.sdf_text_renderer = Some(sdf_text_renderer);
         state.view.resize(width, height);
         state.attached = true;
 
@@ -144,7 +134,7 @@ impl ViewRegistry {
         state.config = None;
         state.renderer = None;
         state.sdf_renderer = None;
-        state.msdf_text_renderer = None;
+        state.sdf_text_renderer = None;
         state.attached = false;
         Ok(())
     }

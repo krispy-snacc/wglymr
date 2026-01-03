@@ -16,10 +16,7 @@ pub use execute::execute_wgsl_f32;
 pub use gpu::ViewportResources;
 pub use renderer::PrimitiveRenderer;
 pub use sdf::{RoundedRect, SdfBatch, SdfRenderer, SdfVertex};
-
-pub mod msdf {
-    pub use crate::text::msdf::*;
-}
+pub use text::{SdfGlyph, SdfTextRenderer, SdfVertex as TextVertex};
 
 #[cfg(test)]
 mod tests {

@@ -159,8 +159,8 @@ impl EditorRuntime {
             RuntimeError::InvalidState("Sdf renderer not initialized".to_string())
         })?;
 
-        let msdf_text_renderer = state.msdf_text_renderer.as_mut().ok_or_else(|| {
-            RuntimeError::InvalidState("Msdf Text renderer not initialized".to_string())
+        let sdf_text_renderer = state.sdf_text_renderer.as_mut().ok_or_else(|| {
+            RuntimeError::InvalidState("SDF Text renderer not initialized".to_string())
         })?;
 
         let pan = state.view.pan();
@@ -173,24 +173,26 @@ impl EditorRuntime {
         renderer.draw_grid(pan, zoom, viewport);
         renderer.upload(&gpu.queue);
 
-        msdf_text_renderer.begin_frame();
-        msdf_text_renderer.set_viewport(&gpu.queue, viewport);
-        msdf_text_renderer.set_layer(4);
+        sdf_text_renderer.begin_frame();
+        sdf_text_renderer.set_viewport(&gpu.queue, viewport);
+        sdf_text_renderer.set_layer(4);
 
         let mut shaper = CosmicShaper::new();
 
-        let shaped = shaper.shape_text("Hello WGlymr", 12.0, [-48.0, -48.0]);
+        let shaped = shaper.shape_text("Hello Wglymr", 12.0, [-48.0, -48.0]);
 
         render_shaped_text(
             &shaped,
             &state.view,
-            msdf_text_renderer,
+            sdf_text_renderer,
+            &gpu.device,
+            &gpu.queue,
             [1.0, 1.0, 1.0, 1.0],
             TEXT,
         );
 
-        msdf_text_renderer.finish_batch();
-        msdf_text_renderer.upload(&gpu.queue);
+        sdf_text_renderer.finish_batch();
+        sdf_text_renderer.upload(&gpu.queue);
 
         sdf_renderer.begin_frame();
         sdf_renderer.set_viewport(&gpu.queue, viewport);
@@ -239,7 +241,7 @@ impl EditorRuntime {
             renderer.render_lines(&mut render_pass);
             renderer.render_rects(&mut render_pass);
             sdf_renderer.render(&mut render_pass);
-            msdf_text_renderer.render(&mut render_pass);
+            sdf_text_renderer.render(&mut render_pass);
         }
 
         gpu.queue.submit(std::iter::once(encoder.finish()));

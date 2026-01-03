@@ -4,6 +4,7 @@ use std::collections::HashMap;
 /// World-space shaped glyph
 #[derive(Debug, Clone, Copy)]
 pub struct ShapedGlyph {
+    pub glyph_id: u16,
     pub unicode: u32,
     pub world_x: f32,
     pub world_y: f32,
@@ -31,20 +32,29 @@ pub struct CosmicShaper {
 
 impl CosmicShaper {
     pub fn new() -> Self {
+        Self::with_font_data(None)
+    }
+
+    pub fn with_font_data(font_data: Option<&[u8]>) -> Self {
         let mut font_system = FontSystem::new_with_locale_and_db(
             "en-US".into(),
             cosmic_text::fontdb::Database::new(),
         );
 
-        #[cfg(target_arch = "wasm32")]
-        {
-            static ROBOTO_REGULAR: &[u8] = include_bytes!("../../../fonts/Roboto-Regular.ttf");
-            font_system.db_mut().load_font_data(ROBOTO_REGULAR.to_vec());
-        }
+        if let Some(data) = font_data {
+            font_system.db_mut().load_font_data(data.to_vec());
+        } else {
+            #[cfg(target_arch = "wasm32")]
+            {
+                static ROBOTO_REGULAR: &[u8] =
+                    include_bytes!("../../../../../fonts/DejaVuSans.ttf");
+                font_system.db_mut().load_font_data(ROBOTO_REGULAR.to_vec());
+            }
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            font_system.db_mut().load_system_fonts();
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                font_system.db_mut().load_system_fonts();
+            }
         }
 
         Self {
@@ -79,16 +89,15 @@ impl CosmicShaper {
 
         for run in buffer.layout_runs() {
             for glyph in run.glyphs {
-                // Get the actual text to extract unicode from character index
                 let text_chars: Vec<char> = text.chars().collect();
                 let unicode = if glyph.start < text_chars.len() {
                     text_chars[glyph.start] as u32
                 } else {
-                    // Fallback to space if index is out of bounds
                     32
                 };
 
                 glyphs.push(ShapedGlyph {
+                    glyph_id: glyph.glyph_id as u16,
                     unicode,
                     world_x: base_x + glyph.x,
                     world_y: base_y + run.line_y + glyph.y,

@@ -4,8 +4,8 @@ struct ViewportUniform {
 }
 
 @group(0) @binding(0) var<uniform> viewport: ViewportUniform;
-@group(1) @binding(0) var msdf_texture: texture_2d<f32>;
-@group(1) @binding(1) var msdf_sampler: sampler;
+@group(1) @binding(0) var glyph_texture: texture_2d<f32>;
+@group(1) @binding(1) var glyph_sampler: sampler;
 
 struct VertexInput {
     @location(0) position: vec2<f32>,
@@ -30,22 +30,11 @@ fn vs_main(in: VertexInput) -> VertexOutput {
     return out;
 }
 
-fn median(r: f32, g: f32, b: f32) -> f32 {
-    return max(min(r, g), min(max(r, g), b));
-}
-
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let msd = textureSample(msdf_texture, msdf_sampler, in.uv).rgb;
-    let sd = median(msd.r, msd.g, msd.b);
-    
-    let pxRange = 4.0;
-    let unitRange = pxRange / vec2<f32>(textureDimensions(msdf_texture).xy);
-    let screenTexSize = vec2<f32>(1.0) / fwidth(in.uv);
-    let screenPxRange = max(0.5 * dot(unitRange, screenTexSize), 1.0);
-    
-    let screenPxDistance = screenPxRange * (sd - 0.5);
-    let alpha = clamp(screenPxDistance + 0.5, 0.0, 1.0);
-    
-    return vec4<f32>(in.color.rgb, in.color.a * alpha);
+    let sample = textureSample(glyph_texture, glyph_sampler, in.uv);
+    let dist = sample.r;
+    let w = fwidth(dist) * 0.5;
+    let alpha = smoothstep(0.5 - w, 0.5 + w, dist);
+    return vec4(in.color.rgb, in.color.a * alpha);
 }

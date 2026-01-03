@@ -1,3 +1,3 @@
-pub mod msdf;
+pub mod sdf;
 
-pub use msdf::MSDFTextRenderer;
+pub use sdf::{SdfGlyph, SdfTextRenderer, SdfVertex};

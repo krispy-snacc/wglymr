@@ -4,6 +4,7 @@ use crate::editor::wgpu_renderer::{world_to_screen, world_to_screen_size};
 
 use super::EditorRuntime;
 use super::errors::RuntimeError;
+use crate::editor::text::{CosmicShaper, TEXT, render_shaped_text};
 
 impl EditorRuntime {
     pub fn init_engine(&mut self) -> Result<(), RuntimeError> {
@@ -154,12 +155,12 @@ impl EditorRuntime {
             .as_mut()
             .ok_or_else(|| RuntimeError::InvalidState("Renderer not initialized".to_string()))?;
 
-        let text_renderer = state.text_renderer.as_mut().ok_or_else(|| {
-            RuntimeError::InvalidState("Text renderer not initialized".to_string())
-        })?;
-
         let sdf_renderer = state.sdf_renderer.as_mut().ok_or_else(|| {
             RuntimeError::InvalidState("Sdf renderer not initialized".to_string())
+        })?;
+
+        let msdf_text_renderer = state.msdf_text_renderer.as_mut().ok_or_else(|| {
+            RuntimeError::InvalidState("Msdf Text renderer not initialized".to_string())
         })?;
 
         let pan = state.view.pan();
@@ -171,6 +172,25 @@ impl EditorRuntime {
 
         renderer.draw_grid(pan, zoom, viewport);
         renderer.upload(&gpu.queue);
+
+        msdf_text_renderer.begin_frame();
+        msdf_text_renderer.set_viewport(&gpu.queue, viewport);
+        msdf_text_renderer.set_layer(4);
+
+        let mut shaper = CosmicShaper::new();
+
+        let shaped = shaper.shape_text("Hello WGlymr", 12.0, [-48.0, -48.0]);
+
+        render_shaped_text(
+            &shaped,
+            &state.view,
+            msdf_text_renderer,
+            [1.0, 1.0, 1.0, 1.0],
+            TEXT,
+        );
+
+        msdf_text_renderer.finish_batch();
+        msdf_text_renderer.upload(&gpu.queue);
 
         sdf_renderer.begin_frame();
         sdf_renderer.set_viewport(&gpu.queue, viewport);
@@ -187,49 +207,6 @@ impl EditorRuntime {
 
         sdf_renderer.finish_batch();
         sdf_renderer.upload(&gpu.queue);
-
-        text_renderer.begin_frame();
-        text_renderer.set_viewport(&gpu.queue, viewport);
-        text_renderer.set_layer(3);
-
-        {
-            use crate::editor::text::{CosmicTextEngine, TEXT, TEXT_SHADOW, TextShadow};
-
-            let mut cosmic_engine = CosmicTextEngine::new();
-
-            let world_font_size = 12.0;
-            let world_pos = [-48.0, -48.0];
-            let color = [1.0, 1.0, 1.0, 1.0];
-
-            let (glyphs, font_size) =
-                cosmic_engine.shape_text("Hello WGlymr", world_font_size, world_pos);
-
-            let shadow = Some(TextShadow {
-                offset_px: [
-                    world_to_screen_size(-0.15, &state.view),
-                    world_to_screen_size(0.3, &state.view),
-                ],
-                color: [0.0, 0.0, 0.0, 0.6],
-                layer: TEXT_SHADOW,
-                scale: 1.0,
-                blur: world_to_screen_size(0.7, &state.view),
-            });
-
-            cosmic_engine.render_glyphs(
-                &glyphs,
-                font_size,
-                &state.view,
-                text_renderer,
-                &gpu.queue,
-                &gpu.device,
-                color,
-                TEXT,
-                shadow,
-            );
-        }
-
-        text_renderer.finish_batch();
-        text_renderer.upload(&gpu.queue);
 
         let mut encoder = gpu
             .device
@@ -262,7 +239,7 @@ impl EditorRuntime {
             renderer.render_lines(&mut render_pass);
             renderer.render_rects(&mut render_pass);
             sdf_renderer.render(&mut render_pass);
-            text_renderer.render(&mut render_pass);
+            msdf_text_renderer.render(&mut render_pass);
         }
 
         gpu.queue.submit(std::iter::once(encoder.finish()));

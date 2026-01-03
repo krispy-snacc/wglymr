@@ -2,7 +2,7 @@ use super::errors::RuntimeError;
 use super::gpu::SurfaceHandle;
 use crate::engine::EditorView;
 use std::collections::HashMap;
-use wglymr_render_wgpu::{PrimitiveRenderer, SdfRenderer, TextRenderer};
+use wglymr_render_wgpu::{PrimitiveRenderer, SdfRenderer, text::MSDFTextRenderer};
 
 pub type ViewId = String;
 
@@ -13,8 +13,8 @@ pub struct ViewState {
     pub surface: Option<SurfaceHandle>,
     pub config: Option<wgpu::SurfaceConfiguration>,
     pub renderer: Option<PrimitiveRenderer>,
-    pub text_renderer: Option<TextRenderer>,
     pub sdf_renderer: Option<SdfRenderer>,
+    pub msdf_text_renderer: Option<MSDFTextRenderer>,
 }
 
 impl ViewState {
@@ -26,8 +26,8 @@ impl ViewState {
             surface: None,
             config: None,
             renderer: None,
-            text_renderer: None,
             sdf_renderer: None,
+            msdf_text_renderer: None,
         }
     }
 }
@@ -110,15 +110,24 @@ impl ViewRegistry {
         wgpu_surface.configure(&gpu.device, &config);
 
         let renderer = PrimitiveRenderer::new(&gpu.device, format);
-        let viewport_resources = wglymr_render_wgpu::ViewportResources::new(&gpu.device);
-        let text_renderer = TextRenderer::new(&gpu.device, format, &viewport_resources);
         let sdf_renderer = SdfRenderer::new(&gpu.device, format);
+        let mut msdf_text_renderer = MSDFTextRenderer::new(&gpu.device, format);
+
+        // Load and set font for text renderer
+        match crate::editor::text::load_roboto_msdf(&gpu.device, &gpu.queue) {
+            Ok(font) => {
+                msdf_text_renderer.set_font(&gpu.device, font);
+            }
+            Err(e) => {
+                crate::runtime::logging::log(&format!("Failed to load MSDF font: {}", e));
+            }
+        }
 
         state.surface = Some(surface);
         state.config = Some(config);
         state.renderer = Some(renderer);
-        state.text_renderer = Some(text_renderer);
         state.sdf_renderer = Some(sdf_renderer);
+        state.msdf_text_renderer = Some(msdf_text_renderer);
         state.view.resize(width, height);
         state.attached = true;
 
@@ -134,8 +143,8 @@ impl ViewRegistry {
         state.surface = None;
         state.config = None;
         state.renderer = None;
-        state.text_renderer = None;
         state.sdf_renderer = None;
+        state.msdf_text_renderer = None;
         state.attached = false;
         Ok(())
     }

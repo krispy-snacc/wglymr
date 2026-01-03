@@ -2,36 +2,37 @@ use std::ops::Range;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct TextVertex {
+pub struct MSDFVertex {
     pub position: [f32; 2],
     pub uv: [f32; 2],
     pub color: [f32; 4],
 }
 
+/// Screen-space glyph quad for MSDF rendering
 #[derive(Debug, Clone, Copy)]
-pub struct GpuGlyph {
+pub struct MSDFGlyph {
     pub screen_pos: [f32; 2],
-    pub size: [f32; 2],
+    pub screen_size: [f32; 2],
     pub uv_min: [f32; 2],
     pub uv_max: [f32; 2],
     pub color: [f32; 4],
     pub layer: u8,
 }
 
-pub struct TextBatch {
-    vertices: Vec<TextVertex>,
+pub struct MSDFBatch {
+    vertices: Vec<MSDFVertex>,
     layers: Vec<Range<u32>>,
     current_layer: u8,
     layer_start: u32,
 }
 
-impl Default for TextBatch {
+impl Default for MSDFBatch {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl TextBatch {
+impl MSDFBatch {
     pub fn new() -> Self {
         Self {
             vertices: Vec::new(),
@@ -59,30 +60,30 @@ impl TextBatch {
         self.current_layer = layer;
     }
 
-    pub fn push(&mut self, glyph: GpuGlyph) {
+    pub fn push(&mut self, glyph: MSDFGlyph) {
         if glyph.layer != self.current_layer {
             self.set_layer(glyph.layer);
         }
 
         let [x, y] = glyph.screen_pos;
-        let [w, h] = glyph.size;
+        let [w, h] = glyph.screen_size;
 
-        let top_left = TextVertex {
+        let top_left = MSDFVertex {
             position: [x, y],
             uv: glyph.uv_min,
             color: glyph.color,
         };
-        let top_right = TextVertex {
+        let top_right = MSDFVertex {
             position: [x + w, y],
             uv: [glyph.uv_max[0], glyph.uv_min[1]],
             color: glyph.color,
         };
-        let bottom_right = TextVertex {
+        let bottom_right = MSDFVertex {
             position: [x + w, y + h],
             uv: glyph.uv_max,
             color: glyph.color,
         };
-        let bottom_left = TextVertex {
+        let bottom_left = MSDFVertex {
             position: [x, y + h],
             uv: [glyph.uv_min[0], glyph.uv_max[1]],
             color: glyph.color,
@@ -97,26 +98,22 @@ impl TextBatch {
     }
 
     pub fn finish(&mut self) {
-        let end = self.vertices.len() as u32;
+        let end = self.vertices.len() as u32 / 6;
         if end > self.layer_start {
             self.layers.push(self.layer_start..end);
         }
         self.layer_start = end;
     }
 
-    pub fn vertices(&self) -> &[TextVertex] {
+    pub fn vertices(&self) -> &[MSDFVertex] {
         &self.vertices
     }
 
-    pub fn layer_ranges(&self) -> &[Range<u32>] {
+    pub fn layers(&self) -> &[Range<u32>] {
         &self.layers
     }
 
     pub fn is_empty(&self) -> bool {
         self.vertices.is_empty()
-    }
-
-    pub fn vertex_count(&self) -> usize {
-        self.vertices.len()
     }
 }

@@ -1,4 +1,5 @@
 use std::ops::Range;
+use wglymr_color::Color;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -14,7 +15,7 @@ pub struct SdfGlyph {
     pub screen_size: [f32; 2],
     pub uv_min: [f32; 2],
     pub uv_max: [f32; 2],
-    pub color: [f32; 4],
+    pub color: Color,
     pub layer: u8,
 }
 
@@ -66,26 +67,27 @@ impl SdfBatch {
 
         let [x0, y0] = glyph.screen_pos;
         let [x1, y1] = [x0 + glyph.screen_size[0], y0 + glyph.screen_size[1]];
+        let color_gpu = glyph.color.to_gpu_linear();
 
         let top_left = SdfVertex {
             position: [x0, y0],
             uv: glyph.uv_min,
-            color: glyph.color,
+            color: color_gpu,
         };
         let top_right = SdfVertex {
             position: [x1, y0],
             uv: [glyph.uv_max[0], glyph.uv_min[1]],
-            color: glyph.color,
+            color: color_gpu,
         };
         let bottom_right = SdfVertex {
             position: [x1, y1],
             uv: glyph.uv_max,
-            color: glyph.color,
+            color: color_gpu,
         };
         let bottom_left = SdfVertex {
             position: [x0, y1],
             uv: [glyph.uv_min[0], glyph.uv_max[1]],
-            color: glyph.color,
+            color: color_gpu,
         };
 
         self.vertices.push(top_left);

@@ -2,6 +2,7 @@ use super::cosmic_shaper::ShapedTextRun;
 use crate::editor::wgpu_renderer::world_to_screen;
 use crate::engine::EditorView;
 use crate::runtime::logging;
+use wglymr_color::Color;
 use wglymr_render_wgpu::SdfTextRenderer;
 use wglymr_render_wgpu::text::sdf::GlyphKey;
 
@@ -14,7 +15,7 @@ pub fn render_shaped_text(
     sdf_renderer: &mut SdfTextRenderer,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    color: [f32; 4],
+    color: Color,
     layer: u8,
 ) {
     let zoom = view.zoom();

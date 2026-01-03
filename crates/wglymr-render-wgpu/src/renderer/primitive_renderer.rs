@@ -45,11 +45,11 @@ impl PrimitiveRenderer {
         &mut self.batch
     }
 
-    pub fn draw_line(&mut self, from: [f32; 2], to: [f32; 2], color: [f32; 4]) {
+    pub fn draw_line(&mut self, from: [f32; 2], to: [f32; 2], color: wglymr_color::Color) {
         self.batch.line(from, to, color);
     }
 
-    pub fn draw_rect(&mut self, min: [f32; 2], max: [f32; 2], color: [f32; 4]) {
+    pub fn draw_rect(&mut self, min: [f32; 2], max: [f32; 2], color: wglymr_color::Color) {
         self.batch.rect(min, max, color);
     }
 

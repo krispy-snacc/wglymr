@@ -1,7 +1,8 @@
 use crate::batch::PrimitiveBatch;
+use wglymr_color::Color;
 
 const GRID_WORLD_SPACING: f32 = 60.0;
-const GRID_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 0.03];
+const GRID_COLOR: Color = Color::GRID_MINOR;
 
 pub fn draw_grid(
     batch: &mut PrimitiveBatch,

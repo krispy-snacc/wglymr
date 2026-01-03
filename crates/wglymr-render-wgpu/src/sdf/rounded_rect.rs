@@ -1,10 +1,12 @@
+use wglymr_color::Color;
+
 pub struct RoundedRect {
     pub min: [f32; 2],
     pub max: [f32; 2],
     pub radius: f32,
     pub border_width: f32,
-    pub fill_color: [f32; 4],
-    pub border_color: [f32; 4],
+    pub fill_color: Color,
+    pub border_color: Color,
 }
 
 impl RoundedRect {
@@ -14,8 +16,8 @@ impl RoundedRect {
             max,
             radius: 0.0,
             border_width: 0.0,
-            fill_color: [1.0, 1.0, 1.0, 1.0],
-            border_color: [0.0, 0.0, 0.0, 1.0],
+            fill_color: Color::WHITE,
+            border_color: Color::BLACK,
         }
     }
 
@@ -24,13 +26,13 @@ impl RoundedRect {
         self
     }
 
-    pub fn with_border(mut self, width: f32, color: [f32; 4]) -> Self {
+    pub fn with_border(mut self, width: f32, color: Color) -> Self {
         self.border_width = width;
         self.border_color = color;
         self
     }
 
-    pub fn with_fill_color(mut self, color: [f32; 4]) -> Self {
+    pub fn with_fill_color(mut self, color: Color) -> Self {
         self.fill_color = color;
         self
     }

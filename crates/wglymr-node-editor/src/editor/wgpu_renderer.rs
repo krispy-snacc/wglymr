@@ -1,6 +1,7 @@
 use crate::editor::render_model::{RenderEdge, RenderNode};
 use crate::editor::renderer::NodeEditorRenderer;
 use crate::engine::EditorView;
+use wglymr_color::Color;
 
 /// Render layer constants for z-ordering.
 /// Lower values are rendered first (behind).
@@ -41,9 +42,9 @@ impl<'a> NodeEditorRenderer for WgpuNodeEditorRenderer<'a> {
         let screen_min = world_to_screen(node.bounds.min, view);
         let screen_max = world_to_screen(node.bounds.max, view);
         let color = if node.selected {
-            [0.3, 0.3, 0.5, 1.0]
+            Color::rgb(0.3, 0.3, 0.5)
         } else {
-            [0.2, 0.2, 0.3, 1.0]
+            Color::rgb(0.2, 0.2, 0.3)
         };
         self.primitive_renderer
             .draw_rect(screen_min, screen_max, color);
@@ -52,7 +53,7 @@ impl<'a> NodeEditorRenderer for WgpuNodeEditorRenderer<'a> {
     fn draw_edge(&mut self, edge: &RenderEdge, view: &EditorView) {
         let screen_from = world_to_screen(edge.from, view);
         let screen_to = world_to_screen(edge.to, view);
-        let color = [0.8, 0.8, 0.8, 1.0];
+        let color = Color::gray(0.8);
         self.primitive_renderer
             .draw_line(screen_from, screen_to, color);
     }

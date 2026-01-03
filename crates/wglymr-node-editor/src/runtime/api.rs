@@ -1,3 +1,4 @@
+use wglymr_color::Color;
 use wglymr_render_wgpu::RoundedRect;
 
 use crate::editor::wgpu_renderer::{world_to_screen, world_to_screen_size};
@@ -187,7 +188,7 @@ impl EditorRuntime {
             sdf_text_renderer,
             &gpu.device,
             &gpu.queue,
-            [1.0, 1.0, 1.0, 1.0],
+            Color::WHITE,
             TEXT,
         );
 
@@ -203,8 +204,8 @@ impl EditorRuntime {
             max: world_to_screen([50.0, 50.0], &state.view),
             radius: world_to_screen_size(4.0, &state.view),
             border_width: world_to_screen_size(1.0, &state.view),
-            fill_color: [48.0 / 255.0, 48.0 / 255.0, 48.0 / 255.0, 1.0],
-            border_color: [0.0, 0.0, 0.0, 1.0],
+            fill_color: Color::NODE_BG,
+            border_color: Color::BLACK,
         });
 
         sdf_renderer.finish_batch();

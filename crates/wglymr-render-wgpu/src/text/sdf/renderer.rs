@@ -130,7 +130,7 @@ impl SdfTextRenderer {
         glyph_key: GlyphKey,
         screen_pos: [f32; 2],
         scale: f32,
-        color: [f32; 4],
+        color: wglymr_color::Color,
         layer: u8,
     ) {
         if let Some(atlas_glyph) = self.atlas.get(&glyph_key) {

@@ -39,6 +39,8 @@ impl SdfBatch {
     pub fn draw_rounded_rect(&mut self, rect: &RoundedRect) {
         let min = rect.min;
         let max = rect.max;
+        let fill_color_gpu = rect.fill_color.to_gpu_linear();
+        let border_color_gpu = rect.border_color.to_gpu_linear();
 
         let vertices = [
             SdfVertex {
@@ -47,8 +49,8 @@ impl SdfBatch {
                 rect_max: rect.max,
                 radius: rect.radius,
                 border_width: rect.border_width,
-                fill_color: rect.fill_color,
-                border_color: rect.border_color,
+                fill_color: fill_color_gpu,
+                border_color: border_color_gpu,
             },
             SdfVertex {
                 position: [max[0], min[1]],
@@ -56,8 +58,8 @@ impl SdfBatch {
                 rect_max: rect.max,
                 radius: rect.radius,
                 border_width: rect.border_width,
-                fill_color: rect.fill_color,
-                border_color: rect.border_color,
+                fill_color: fill_color_gpu,
+                border_color: border_color_gpu,
             },
             SdfVertex {
                 position: [max[0], max[1]],
@@ -65,8 +67,8 @@ impl SdfBatch {
                 rect_max: rect.max,
                 radius: rect.radius,
                 border_width: rect.border_width,
-                fill_color: rect.fill_color,
-                border_color: rect.border_color,
+                fill_color: fill_color_gpu,
+                border_color: border_color_gpu,
             },
             SdfVertex {
                 position: [min[0], min[1]],
@@ -74,8 +76,8 @@ impl SdfBatch {
                 rect_max: rect.max,
                 radius: rect.radius,
                 border_width: rect.border_width,
-                fill_color: rect.fill_color,
-                border_color: rect.border_color,
+                fill_color: fill_color_gpu,
+                border_color: border_color_gpu,
             },
             SdfVertex {
                 position: [max[0], max[1]],
@@ -83,8 +85,8 @@ impl SdfBatch {
                 rect_max: rect.max,
                 radius: rect.radius,
                 border_width: rect.border_width,
-                fill_color: rect.fill_color,
-                border_color: rect.border_color,
+                fill_color: fill_color_gpu,
+                border_color: border_color_gpu,
             },
             SdfVertex {
                 position: [min[0], max[1]],
@@ -92,8 +94,8 @@ impl SdfBatch {
                 rect_max: rect.max,
                 radius: rect.radius,
                 border_width: rect.border_width,
-                fill_color: rect.fill_color,
-                border_color: rect.border_color,
+                fill_color: fill_color_gpu,
+                border_color: border_color_gpu,
             },
         ];
 

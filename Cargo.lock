@@ -340,29 +340,6 @@ dependencies = [
 
 [[package]]
 name = "cosmic-text"
-version = "0.13.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e418dd4f5128c3e93eab12246391c54a20c496811131f85754dc8152ee207892"
-dependencies = [
- "bitflags 2.10.0",
- "fontdb",
- "log",
- "rangemap",
- "rustc-hash 1.1.0",
- "rustybuzz",
- "self_cell",
- "smol_str",
- "swash",
- "sys-locale",
- "ttf-parser 0.21.1",
- "unicode-bidi",
- "unicode-linebreak",
- "unicode-script",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "cosmic-text"
 version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da46a9d5a8905cc538a4a5bceb6a4510de7a51049c5588c0114efce102bcbbe8"
@@ -684,7 +661,7 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c6a289ad2a23656ccf4306fc818cef6776471a136d909123fd26c0f2ecb44ba"
 dependencies = [
- "cosmic-text 0.14.2",
+ "cosmic-text",
  "etagere",
  "lru",
  "rustc-hash 2.1.1",
@@ -2070,7 +2047,6 @@ name = "wglymr-node-editor"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
- "cosmic-text 0.13.2",
  "serde",
  "serde_json",
  "wasm-bindgen",

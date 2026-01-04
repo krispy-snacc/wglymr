@@ -2,7 +2,7 @@ use super::errors::RuntimeError;
 use super::gpu::SurfaceHandle;
 use crate::engine::EditorView;
 use std::collections::HashMap;
-use wglymr_render_wgpu::{GlyphonTextRenderer, PrimitiveRenderer, SdfRenderer, SdfTextRenderer};
+use wglymr_render_wgpu::{GlyphonTextRenderer, PrimitiveRenderer, SdfRenderer};
 
 pub type ViewId = String;
 
@@ -14,7 +14,6 @@ pub struct ViewState {
     pub config: Option<wgpu::SurfaceConfiguration>,
     pub renderer: Option<PrimitiveRenderer>,
     pub sdf_renderer: Option<SdfRenderer>,
-    pub sdf_text_renderer: Option<SdfTextRenderer>,
     pub glyphon_text_renderer: Option<GlyphonTextRenderer>,
 }
 
@@ -28,7 +27,6 @@ impl ViewState {
             config: None,
             renderer: None,
             sdf_renderer: None,
-            sdf_text_renderer: None,
             glyphon_text_renderer: None,
         }
     }
@@ -120,14 +118,12 @@ impl ViewRegistry {
 
         let renderer = PrimitiveRenderer::new(&gpu.device, format);
         let sdf_renderer = SdfRenderer::new(&gpu.device, format);
-        let sdf_text_renderer = SdfTextRenderer::new(&gpu.device, format);
         let glyphon_text_renderer = GlyphonTextRenderer::new(&gpu.device, &gpu.queue, format);
 
         state.surface = Some(surface);
         state.config = Some(config);
         state.renderer = Some(renderer);
         state.sdf_renderer = Some(sdf_renderer);
-        state.sdf_text_renderer = Some(sdf_text_renderer);
         state.glyphon_text_renderer = Some(glyphon_text_renderer);
 
         state.view.resize(css_width, css_height, backing_scale);
@@ -146,7 +142,6 @@ impl ViewRegistry {
         state.config = None;
         state.renderer = None;
         state.sdf_renderer = None;
-        state.sdf_text_renderer = None;
         state.glyphon_text_renderer = None;
         state.attached = false;
         Ok(())

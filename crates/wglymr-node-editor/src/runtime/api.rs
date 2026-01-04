@@ -184,10 +184,6 @@ impl EditorRuntime {
             RuntimeError::InvalidState("Sdf renderer not initialized".to_string())
         })?;
 
-        // let sdf_text_renderer = state.sdf_text_renderer.as_mut().ok_or_else(|| {
-        //     RuntimeError::InvalidState("SDF Text renderer not initialized".to_string())
-        // })?;
-
         let glyphon_text_renderer = state.glyphon_text_renderer.as_mut().ok_or_else(|| {
             RuntimeError::InvalidState("Glyphon text renderer not initialized".to_string())
         })?;

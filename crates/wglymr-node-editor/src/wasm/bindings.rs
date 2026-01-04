@@ -70,7 +70,6 @@ pub async fn init_gpu() -> Result<(), JsValue> {
             required_limits: wgpu::Limits::downlevel_webgl2_defaults(),
             memory_hints: Default::default(),
             trace: wgpu::Trace::Off,
-            experimental_features: wgpu::ExperimentalFeatures::default(),
         })
         .await
         .map_err(|e| JsValue::from_str(&format!("Failed to request device: {:?}", e)))?;
@@ -105,7 +104,13 @@ pub fn destroy_view(id: &str) {
 }
 
 #[wasm_bindgen]
-pub fn attach_view(id: &str, canvas: HtmlCanvasElement, width: u32, height: u32) {
+pub fn attach_view(
+    id: &str,
+    canvas: HtmlCanvasElement,
+    css_width: u32,
+    css_height: u32,
+    backing_scale: f32,
+) {
     EditorRuntime::with(|rt| {
         let gpu = match rt.gpu() {
             Some(gpu) => gpu,
@@ -128,7 +133,7 @@ pub fn attach_view(id: &str, canvas: HtmlCanvasElement, width: u32, height: u32)
 
         let surface_handle = SurfaceHandle::Web(surface);
 
-        if let Err(e) = rt.attach_view(id, surface_handle, width, height) {
+        if let Err(e) = rt.attach_view(id, surface_handle, css_width, css_height, backing_scale) {
             crate::runtime::logging::error(&format!("Failed to attach view: {}", e));
         }
     });
@@ -144,9 +149,9 @@ pub fn detach_view(id: &str) {
 }
 
 #[wasm_bindgen]
-pub fn resize_view(id: &str, width: u32, height: u32) {
+pub fn resize_view(id: &str, css_width: u32, css_height: u32, backing_scale: f32) {
     EditorRuntime::with(|rt| {
-        if let Err(e) = rt.resize_view(id, width, height) {
+        if let Err(e) = rt.resize_view(id, css_width, css_height, backing_scale) {
             crate::runtime::logging::error(&format!("Failed to resize view: {}", e));
         }
     });

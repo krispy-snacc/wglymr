@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 wasm-opt = false
 
 [dependencies]
-wgpu = "27.0"
+wgpu = "25.0"
 wglymr-render-wgpu = { path = "../wglymr-render-wgpu" }
 wglymr-color = { path = "../wglymr-color" }
 wasm-bindgen = "0.2"

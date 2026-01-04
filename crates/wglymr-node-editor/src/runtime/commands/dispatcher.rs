@@ -37,10 +37,11 @@ fn handle_view_pan(
 
     let pan = view_state.view.pan();
     let zoom = view_state.view.zoom();
+    let s = view_state.view.backing_scale();
 
     // Convert screen-space delta => world-space delta
-    let world_dx = dx / zoom;
-    let world_dy = dy / zoom;
+    let world_dx = dx * s / zoom;
+    let world_dy = dy * s / zoom;
 
     // Invert direction: dragging right moves world left
     let new_pan_x = pan[0] - world_dx;
@@ -69,17 +70,18 @@ fn handle_view_zoom(
 
     let zoom_old = state.view.zoom();
     let pan_world = state.view.pan(); // NOW interpreted as world-space center
-    let width = state.view.width() as f32;
-    let height = state.view.height() as f32;
+    let width = state.view.backing_width() as f32;
+    let height = state.view.backing_height() as f32;
 
     const MIN_ZOOM: f32 = 0.1;
     const MAX_ZOOM: f32 = 10.0;
 
     let zoom_new = (zoom_old * zoom_factor).clamp(MIN_ZOOM, MAX_ZOOM);
+    let s = state.view.backing_scale();
 
     // If no cursor, zoom around center
     let (cx, cy) = match (cursor_x, cursor_y) {
-        (Some(x), Some(y)) => (x, y),
+        (Some(x), Some(y)) => (x * s, y * s),
         _ => (width * 0.5, height * 0.5),
     };
 

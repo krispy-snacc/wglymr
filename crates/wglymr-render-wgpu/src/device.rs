@@ -28,7 +28,6 @@ pub fn create_gpu_context() -> GpuContext {
                 required_limits: wgpu::Limits::default(),
                 memory_hints: wgpu::MemoryHints::default(),
                 trace: wgpu::Trace::Off,
-                experimental_features: wgpu::ExperimentalFeatures::default(),
             })
             .await
             .expect("Failed to create device");

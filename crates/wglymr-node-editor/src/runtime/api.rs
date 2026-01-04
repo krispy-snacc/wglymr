@@ -5,7 +5,6 @@ use crate::editor::wgpu_renderer::{world_to_screen, world_to_screen_size};
 
 use super::EditorRuntime;
 use super::errors::RuntimeError;
-use crate::editor::text::{CosmicShaper, TEXT, render_shaped_text};
 
 impl EditorRuntime {
     pub fn init_engine(&mut self) -> Result<(), RuntimeError> {
@@ -40,14 +39,24 @@ impl EditorRuntime {
         &mut self,
         id: &str,
         surface: super::gpu::SurfaceHandle,
-        width: u32,
-        height: u32,
+        css_width: u32,
+        css_height: u32,
+        backing_scale: f32,
     ) -> Result<(), RuntimeError> {
-        logging::log(&format!("Attaching view: {} ({}x{})", id, width, height));
+        logging::log(&format!(
+            "Attaching view: {} (CSS: {}x{}, scale: {:.2}x, backing: {}x{})",
+            id,
+            css_width,
+            css_height,
+            backing_scale,
+            (css_width as f32 * backing_scale) as u32,
+            (css_height as f32 * backing_scale) as u32
+        ));
 
         let gpu = self.gpu.as_ref().ok_or(RuntimeError::GpuNotInitialized)?;
 
-        self.views.attach_view(id, surface, width, height, gpu)?;
+        self.views
+            .attach_view(id, surface, css_width, css_height, backing_scale, gpu)?;
         Ok(())
     }
 
@@ -57,12 +66,27 @@ impl EditorRuntime {
         Ok(())
     }
 
-    pub fn resize_view(&mut self, id: &str, width: u32, height: u32) -> Result<(), RuntimeError> {
-        logging::log(&format!("Resizing view {}: {}x{}", id, width, height));
+    pub fn resize_view(
+        &mut self,
+        id: &str,
+        css_width: u32,
+        css_height: u32,
+        backing_scale: f32,
+    ) -> Result<(), RuntimeError> {
+        logging::log(&format!(
+            "Resizing view {}: CSS {}x{}, scale {:.2}x, backing {}x{}",
+            id,
+            css_width,
+            css_height,
+            backing_scale,
+            (css_width as f32 * backing_scale) as u32,
+            (css_height as f32 * backing_scale) as u32
+        ));
 
         let gpu = self.gpu.as_ref().ok_or(RuntimeError::GpuNotInitialized)?;
 
-        self.views.resize_view(id, width, height, gpu)?;
+        self.views
+            .resize_view(id, css_width, css_height, backing_scale, gpu)?;
         Ok(())
     }
 
@@ -160,13 +184,21 @@ impl EditorRuntime {
             RuntimeError::InvalidState("Sdf renderer not initialized".to_string())
         })?;
 
-        let sdf_text_renderer = state.sdf_text_renderer.as_mut().ok_or_else(|| {
-            RuntimeError::InvalidState("SDF Text renderer not initialized".to_string())
+        // let sdf_text_renderer = state.sdf_text_renderer.as_mut().ok_or_else(|| {
+        //     RuntimeError::InvalidState("SDF Text renderer not initialized".to_string())
+        // })?;
+
+        let glyphon_text_renderer = state.glyphon_text_renderer.as_mut().ok_or_else(|| {
+            RuntimeError::InvalidState("Glyphon text renderer not initialized".to_string())
         })?;
 
         let pan = state.view.pan();
         let zoom = state.view.zoom();
-        let viewport = [state.view.width() as f32, state.view.height() as f32];
+        // Viewport MUST be backing dimensions (actual render resolution)
+        let viewport = [
+            state.view.backing_width() as f32,
+            state.view.backing_height() as f32,
+        ];
 
         renderer.begin_frame();
         renderer.set_viewport(&gpu.queue, viewport);
@@ -174,26 +206,24 @@ impl EditorRuntime {
         renderer.draw_grid(pan, zoom, viewport);
         renderer.upload(&gpu.queue);
 
-        sdf_text_renderer.begin_frame();
-        sdf_text_renderer.set_viewport(&gpu.queue, viewport);
-        sdf_text_renderer.set_layer(4);
+        glyphon_text_renderer.begin_frame();
+        glyphon_text_renderer.set_viewport(&gpu.queue, viewport);
 
-        let mut shaper = CosmicShaper::new();
+        let world_pos = [-48.0, -48.0];
+        let screen_pos = world_to_screen(world_pos, &state.view);
+        let world_font_size = 12.0;
+        let screen_font_size = world_font_size * zoom;
 
-        let shaped = shaper.shape_text("Hello Wglymr", 12.0, [-48.0, -48.0]);
-
-        render_shaped_text(
-            &shaped,
-            &state.view,
-            sdf_text_renderer,
-            &gpu.device,
-            &gpu.queue,
+        glyphon_text_renderer.draw_text(
+            "Hello Wglymr",
+            screen_pos,
+            screen_font_size,
             Color::WHITE,
-            TEXT,
+            4,
         );
 
-        sdf_text_renderer.finish_batch();
-        sdf_text_renderer.upload(&gpu.queue);
+        glyphon_text_renderer.finish_batch();
+        glyphon_text_renderer.upload(&gpu.device, &gpu.queue);
 
         sdf_renderer.begin_frame();
         sdf_renderer.set_viewport(&gpu.queue, viewport);
@@ -232,7 +262,6 @@ impl EditorRuntime {
                         }),
                         store: wgpu::StoreOp::Store,
                     },
-                    depth_slice: None,
                 })],
                 depth_stencil_attachment: None,
                 timestamp_writes: None,
@@ -242,7 +271,7 @@ impl EditorRuntime {
             renderer.render_lines(&mut render_pass);
             renderer.render_rects(&mut render_pass);
             sdf_renderer.render(&mut render_pass);
-            sdf_text_renderer.render(&mut render_pass);
+            glyphon_text_renderer.render(&mut render_pass);
         }
 
         gpu.queue.submit(std::iter::once(encoder.finish()));

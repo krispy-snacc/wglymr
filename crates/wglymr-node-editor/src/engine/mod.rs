@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::document::adapter::DocumentAdapter;
 use crate::editor::culling::{compute_view_bounds, is_edge_visible, is_node_visible};
-use crate::editor::layout::{build_render_model, NodeLayoutConstants};
+use crate::editor::layout::{NodeLayoutConstants, build_render_model};
 use crate::editor::renderer::NodeEditorRenderer;
 use crate::editor::wgpu_renderer::WgpuNodeEditorRenderer;
 
@@ -15,11 +15,18 @@ impl ViewId {
     }
 }
 
+/// Camera state and resolution. CSS dimensions for layout, backing dimensions for GPU rendering.
 pub struct EditorView {
     pan: [f32; 2],
     zoom: f32,
-    width: u32,
-    height: u32,
+
+    css_width: u32,
+    css_height: u32,
+
+    backing_width: u32,
+    backing_height: u32,
+
+    backing_scale: f32,
 }
 
 impl EditorView {
@@ -27,14 +34,21 @@ impl EditorView {
         Self {
             pan: [0.0, 0.0],
             zoom: 1.0,
-            width: 800,
-            height: 600,
+            css_width: 800,
+            css_height: 600,
+            backing_width: 800,
+            backing_height: 600,
+            backing_scale: 1.0,
         }
     }
 
-    pub fn resize(&mut self, width: u32, height: u32) {
-        self.width = width;
-        self.height = height;
+    /// Update CSS and backing dimensions. Backing scale typically = devicePixelRatio.
+    pub fn resize(&mut self, css_width: u32, css_height: u32, backing_scale: f32) {
+        self.css_width = css_width;
+        self.css_height = css_height;
+        self.backing_scale = backing_scale;
+        self.backing_width = (css_width as f32 * backing_scale) as u32;
+        self.backing_height = (css_height as f32 * backing_scale) as u32;
     }
 
     pub fn set_camera(&mut self, pan: [f32; 2], zoom: f32) {
@@ -50,12 +64,35 @@ impl EditorView {
         self.zoom
     }
 
-    pub fn width(&self) -> u32 {
-        self.width
+    pub fn css_width(&self) -> u32 {
+        self.css_width
     }
 
+    pub fn css_height(&self) -> u32 {
+        self.css_height
+    }
+
+    /// Actual GPU render resolution. Use for all rendering math.
+    pub fn backing_width(&self) -> u32 {
+        self.backing_width
+    }
+
+    pub fn backing_height(&self) -> u32 {
+        self.backing_height
+    }
+
+    pub fn backing_scale(&self) -> f32 {
+        self.backing_scale
+    }
+
+    #[deprecated(note = "Use backing_width() or css_width() explicitly")]
+    pub fn width(&self) -> u32 {
+        self.backing_width
+    }
+
+    #[deprecated(note = "Use backing_height() or css_height() explicitly")]
     pub fn height(&self) -> u32 {
-        self.height
+        self.backing_height
     }
 }
 
@@ -84,9 +121,15 @@ impl EditorEngine {
         self.views.remove(&view_id);
     }
 
-    pub fn resize_view(&mut self, view_id: ViewId, width: u32, height: u32) {
+    pub fn resize_view(
+        &mut self,
+        view_id: ViewId,
+        css_width: u32,
+        css_height: u32,
+        backing_scale: f32,
+    ) {
         if let Some(view) = self.views.get_mut(&view_id) {
-            view.resize(width, height);
+            view.resize(css_width, css_height, backing_scale);
         }
     }
 

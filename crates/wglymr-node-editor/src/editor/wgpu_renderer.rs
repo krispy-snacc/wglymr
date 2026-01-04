@@ -13,13 +13,20 @@ pub mod layers {
     pub const WIDGETS: u8 = 4;
 }
 
+/// Transform world-space coordinates to screen-space (backing resolution).
+///
+/// CRITICAL: This uses backing dimensions, NOT CSS dimensions.
+/// The backing resolution is the actual pixel grid rendered by WebGPU.
+/// Transform world coordinates to screen pixels using backing resolution.
 pub fn world_to_screen(point: [f32; 2], view: &EditorView) -> [f32; 2] {
     let pan = view.pan();
     let zoom = view.zoom();
+    let w = view.backing_width() as f32;
+    let h = view.backing_height() as f32;
 
     [
-        (point[0] - pan[0]) * zoom + 0.5 * view.width() as f32,
-        (point[1] - pan[1]) * zoom + 0.5 * view.height() as f32,
+        (point[0] - pan[0]) * zoom + 0.5 * w,
+        (point[1] - pan[1]) * zoom + 0.5 * h,
     ]
 }
 

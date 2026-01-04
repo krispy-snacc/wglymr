@@ -16,7 +16,7 @@ pub use execute::execute_wgsl_f32;
 pub use gpu::ViewportResources;
 pub use renderer::PrimitiveRenderer;
 pub use sdf::{RoundedRect, SdfBatch, SdfRenderer, SdfVertex};
-pub use text::{SdfGlyph, SdfTextRenderer, SdfVertex as TextVertex};
+pub use text::{GlyphonTextRenderer, SdfGlyph, SdfTextRenderer, SdfVertex as TextVertex};
 
 #[cfg(test)]
 mod tests {

@@ -27,8 +27,8 @@ function createRenderCapability(viewId: string): RenderCapability {
         setVisible(visible: boolean): void {
             setEditorViewVisible(viewId, visible);
         },
-        resize(width: number, height: number): void {
-            resizeEditorView(viewId, width, height);
+        resize(cssWidth: number, cssHeight: number): void {
+            resizeEditorView(viewId, cssWidth, cssHeight);
         },
     };
 }

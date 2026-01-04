@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
-members = [ "crates/wglymr-color",
+members = [
+    "crates/wglymr-color",
     "crates/wglymr-graph",
     "crates/wglymr-node-editor",
     "crates/wglymr-render-wgpu",

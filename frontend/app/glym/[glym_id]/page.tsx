@@ -6,6 +6,7 @@ import { LoadingScreen } from "@/ui/LoadingScreen";
 import { GoldenLayoutHost } from "@/layout/GoldenLayoutHost";
 import { MobileLayoutHost } from "@/layout/MobileLayoutHost";
 import { GlymProvider } from "@/context/GlymContext";
+import { useGlobalInputCapture } from "@/layout/useGlobalInputCapture";
 
 interface PageProps {
     params: Promise<{ glym_id: string }>;
@@ -15,6 +16,8 @@ export default function GlymPage({ params }: PageProps) {
     const { glym_id } = use(params);
     const [isDesktop, setIsDesktop] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
+
+    useGlobalInputCapture();
 
     useEffect(() => {
         const checkScreenSize = () => {

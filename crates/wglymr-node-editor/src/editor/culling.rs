@@ -2,8 +2,8 @@ use crate::editor::render_model::{Rect, RenderEdge, RenderNode};
 use crate::engine::EditorView;
 
 pub fn compute_view_bounds(view: &EditorView) -> Rect {
-    let width = view.width() as f32;
-    let height = view.height() as f32;
+    let width = view.backing_width() as f32;
+    let height = view.backing_height() as f32;
     let pan = view.pan();
     let zoom = view.zoom();
 

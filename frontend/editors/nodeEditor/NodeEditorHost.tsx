@@ -3,6 +3,8 @@
 import { useEffect, useRef, useCallback } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { useEditorCapabilities } from "@/context/EditorCapabilitiesContext";
+import { setActiveView } from "@/layout/activeViewTracker";
+import { registerViewDispatcher, unregisterViewDispatcher } from "@/layout/commandDispatchRegistry";
 import type { InputContext } from "@/commands";
 import * as cmd from "@/commands";
 
@@ -118,15 +120,21 @@ export function NodeEditorHost() {
         ) as HTMLCanvasElement;
         if (!canvas) return;
 
+        registerViewDispatcher(viewId, (command) => {
+            commandCapability.dispatch(command);
+        });
+
         let activePointerId: number | null = null;
 
         const handleWheel = (event: WheelEvent) => {
+            setActiveView(viewId);
             event.preventDefault();
             const command = cmd.routeWheelEvent(event, createInputContext(event));
             dispatchCommand(command);
         };
 
         const handlePointerDown = (event: PointerEvent) => {
+            setActiveView(viewId);
             dragStateRef.current = {
                 active: true,
                 lastX: event.clientX,
@@ -210,6 +218,8 @@ export function NodeEditorHost() {
             canvas.removeEventListener("pointerup", handlePointerUp);
             canvas.removeEventListener("pointercancel", handlePointerCancel);
             canvas.removeEventListener("keydown", handleKeyDown);
+
+            unregisterViewDispatcher(viewId);
         };
     }, [viewId, commandCapability, createInputContext, dispatchCommand]);
 

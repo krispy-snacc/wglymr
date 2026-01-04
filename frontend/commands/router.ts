@@ -22,47 +22,63 @@ export type InputRouter = (
     context: InputContext
 ) => AnyCommand | null;
 
-// Mouse wheel => zoom command
+// Detect if event is from trackpad (high-resolution continuous deltas)
+function isTrackpad(event: WheelEvent): boolean {
+    return event.deltaMode === 0 && Math.abs(event.deltaY) < 100;
+}
+
+// Figma-style wheel routing: trackpad-first navigation with cursor-centered zoom
 export function routeWheelEvent(
     event: WheelEvent,
     context: InputContext
 ): AnyCommand | null {
     event.preventDefault();
 
-    // Wheel deltas are inverted vs drag
-    const PAN_SCALE = 20.0;
-
-    if (event.shiftKey) {
-        return cmd.panView(
-            context.viewId,
-            -event.deltaY * PAN_SCALE,
-            -event.deltaX * PAN_SCALE
-        );
-    }
-
-    if (event.ctrlKey) {
-        return cmd.panView(
-            context.viewId,
-            -event.deltaX * PAN_SCALE,
-            -event.deltaY * PAN_SCALE
-        );
-    }
-
-    const isZoom = event.ctrlKey || event.metaKey;
-
-    let canvas = event.target! as HTMLCanvasElement;
+    const canvas = event.target as HTMLCanvasElement;
     const rect = canvas.getBoundingClientRect();
-
     const localX = event.clientX - rect.left;
     const localY = event.clientY - rect.top;
 
-    // Normalize wheel delta (trackpad vs mouse)
-    const ZOOM_SENSITIVITY = 0.002;
-    const delta = Math.max(-100, Math.min(100, event.deltaY));
+    const PAN_SCALE = 1.0;
+    const ZOOM_SENSITIVITY = 0.01;
 
-    const zoomFactor = Math.exp(-delta * ZOOM_SENSITIVITY);
-
-    return cmd.zoomView(context.viewId, zoomFactor, localX, localY);
+    if (isTrackpad(event)) {
+        if (event.ctrlKey || event.metaKey) {
+            // TRACKPAD PINCH => ZOOM (cursor-centered)
+            const delta = Math.max(-100, Math.min(100, event.deltaY));
+            const zoomFactor = Math.exp(-delta * ZOOM_SENSITIVITY);
+            return cmd.zoomView(context.viewId, zoomFactor, localX, localY);
+        } else {
+            // TRACKPAD TWO-FINGER MOVE => PAN (free 2D, natural direction)
+            return cmd.panView(
+                context.viewId,
+                -event.deltaX * PAN_SCALE,
+                -event.deltaY * PAN_SCALE
+            );
+        }
+    } else {
+        // MOUSE WHEEL
+        if (event.shiftKey) {
+            // SHIFT + WHEEL => SWAP AXES
+            return cmd.panView(
+                context.viewId,
+                -event.deltaY * PAN_SCALE,
+                -event.deltaX * PAN_SCALE
+            );
+        } else if (event.ctrlKey || event.metaKey) {
+            // CTRL + WHEEL => PAN
+            return cmd.panView(
+                context.viewId,
+                -event.deltaX * PAN_SCALE,
+                -event.deltaY * PAN_SCALE
+            );
+        } else {
+            // WHEEL (no modifiers) => ZOOM (cursor-centered)
+            const delta = Math.max(-100, Math.min(100, event.deltaY));
+            const zoomFactor = Math.exp(-delta * ZOOM_SENSITIVITY);
+            return cmd.zoomView(context.viewId, zoomFactor, localX, localY);
+        }
+    }
 }
 
 // Mouse drag with middle button => pan command

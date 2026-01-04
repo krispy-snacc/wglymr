@@ -2,7 +2,7 @@ use super::errors::RuntimeError;
 use super::gpu::SurfaceHandle;
 use crate::engine::EditorView;
 use std::collections::HashMap;
-use wglymr_render_wgpu::{PrimitiveRenderer, SdfRenderer, SdfTextRenderer};
+use wglymr_render_wgpu::{GlyphonTextRenderer, PrimitiveRenderer, SdfRenderer, SdfTextRenderer};
 
 pub type ViewId = String;
 
@@ -15,6 +15,7 @@ pub struct ViewState {
     pub renderer: Option<PrimitiveRenderer>,
     pub sdf_renderer: Option<SdfRenderer>,
     pub sdf_text_renderer: Option<SdfTextRenderer>,
+    pub glyphon_text_renderer: Option<GlyphonTextRenderer>,
 }
 
 impl ViewState {
@@ -28,6 +29,7 @@ impl ViewState {
             renderer: None,
             sdf_renderer: None,
             sdf_text_renderer: None,
+            glyphon_text_renderer: None,
         }
     }
 }
@@ -69,8 +71,9 @@ impl ViewRegistry {
         &mut self,
         id: &str,
         surface: SurfaceHandle,
-        width: u32,
-        height: u32,
+        css_width: u32,
+        css_height: u32,
+        backing_scale: f32,
         gpu: &super::gpu::GpuContext,
     ) -> Result<(), RuntimeError> {
         let state = self
@@ -96,11 +99,17 @@ impl ViewRegistry {
             .copied()
             .unwrap_or(capabilities.formats[0]);
 
+        // Compute backing dimensions from CSS size and scale
+        // This is the actual pixel resolution that WebGPU will render to
+        let backing_width = (css_width as f32 * backing_scale) as u32;
+        let backing_height = (css_height as f32 * backing_scale) as u32;
+
+        // Surface config uses backing dimensions (the actual render target size)
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format,
-            width,
-            height,
+            width: backing_width,
+            height: backing_height,
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: capabilities.alpha_modes[0],
             view_formats: vec![],
@@ -112,13 +121,16 @@ impl ViewRegistry {
         let renderer = PrimitiveRenderer::new(&gpu.device, format);
         let sdf_renderer = SdfRenderer::new(&gpu.device, format);
         let sdf_text_renderer = SdfTextRenderer::new(&gpu.device, format);
+        let glyphon_text_renderer = GlyphonTextRenderer::new(&gpu.device, &gpu.queue, format);
 
         state.surface = Some(surface);
         state.config = Some(config);
         state.renderer = Some(renderer);
         state.sdf_renderer = Some(sdf_renderer);
         state.sdf_text_renderer = Some(sdf_text_renderer);
-        state.view.resize(width, height);
+        state.glyphon_text_renderer = Some(glyphon_text_renderer);
+
+        state.view.resize(css_width, css_height, backing_scale);
         state.attached = true;
 
         Ok(())
@@ -135,6 +147,7 @@ impl ViewRegistry {
         state.renderer = None;
         state.sdf_renderer = None;
         state.sdf_text_renderer = None;
+        state.glyphon_text_renderer = None;
         state.attached = false;
         Ok(())
     }
@@ -142,8 +155,9 @@ impl ViewRegistry {
     pub fn resize_view(
         &mut self,
         id: &str,
-        width: u32,
-        height: u32,
+        css_width: u32,
+        css_height: u32,
+        backing_scale: f32,
         gpu: &super::gpu::GpuContext,
     ) -> Result<(), RuntimeError> {
         let state = self
@@ -151,7 +165,7 @@ impl ViewRegistry {
             .get_mut(id)
             .ok_or_else(|| RuntimeError::ViewNotFound(id.to_string()))?;
 
-        state.view.resize(width, height);
+        state.view.resize(css_width, css_height, backing_scale);
 
         if state.attached {
             if let (Some(surface), Some(config)) = (&state.surface, &mut state.config) {
@@ -159,8 +173,8 @@ impl ViewRegistry {
                     SurfaceHandle::Web(s) => s,
                 };
 
-                config.width = width;
-                config.height = height;
+                config.width = state.view.backing_width();
+                config.height = state.view.backing_height();
                 wgpu_surface.configure(&gpu.device, config);
             }
         }

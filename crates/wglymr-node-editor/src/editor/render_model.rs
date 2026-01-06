@@ -75,6 +75,8 @@ pub struct RenderNode {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderEdge {
     pub edge_id: EdgeId,
+    pub from_socket: SocketId,
+    pub to_socket: SocketId,
     pub from: [f32; 2],
     pub to: [f32; 2],
 }

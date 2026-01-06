@@ -1,5 +1,6 @@
 use super::EditorRuntime;
 use super::errors::RuntimeError;
+use crate::engine::ViewId;
 
 impl EditorRuntime {
     pub fn init_engine(&mut self) -> Result<(), RuntimeError> {
@@ -20,13 +21,20 @@ impl EditorRuntime {
 
     pub fn create_view(&mut self, id: &str) -> Result<(), RuntimeError> {
         logging::log(&format!("Creating view: {}", id));
-        self.views.create_view(id)?;
+        let view_id = ViewId::new(id.to_string());
+        self.engine.create_view(view_id);
+        self.gpu_views.create_view(id)?;
         Ok(())
     }
 
     pub fn destroy_view(&mut self, id: &str) -> Result<(), RuntimeError> {
         logging::log(&format!("Destroying view: {}", id));
-        self.views.destroy_view(id)?;
+        let view_id = ViewId::new(id.to_string());
+        if let Err(e) = self.gpu_views.destroy_view(id) {
+            logging::error(&format!("Failed to destroy GPU view state: {}", e));
+        }
+        self.engine.destroy_view(&view_id);
+        self.scheduler.clear_dirty(id);
         Ok(())
     }
 
@@ -38,26 +46,35 @@ impl EditorRuntime {
         css_height: u32,
         backing_scale: f32,
     ) -> Result<(), RuntimeError> {
-        logging::log(&format!(
-            "Attaching view: {} (CSS: {}x{}, scale: {:.2}x, backing: {}x{})",
-            id,
-            css_width,
-            css_height,
-            backing_scale,
-            (css_width as f32 * backing_scale) as u32,
-            (css_height as f32 * backing_scale) as u32
-        ));
+        let backing_width = (css_width as f32 * backing_scale) as u32;
+        let backing_height = (css_height as f32 * backing_scale) as u32;
+
+        logging::log(&format!("Attaching view {}", id));
 
         let gpu = self.gpu.as_ref().ok_or(RuntimeError::GpuNotInitialized)?;
 
-        self.views
-            .attach_view(id, surface, css_width, css_height, backing_scale, gpu)?;
+        let view_id = ViewId::new(id.to_string());
+
+        if !self.engine.has_view(&view_id) {
+            return Err(RuntimeError::ViewNotFound(id.to_string()));
+        }
+
+        self.engine.resize_view(
+            &view_id,
+            css_width,
+            css_height,
+            backing_width,
+            backing_height,
+        );
+
+        self.gpu_views
+            .attach_view(id, surface, backing_width, backing_height, gpu)?;
         Ok(())
     }
 
     pub fn detach_view(&mut self, id: &str) -> Result<(), RuntimeError> {
         logging::log(&format!("Detaching view: {}", id));
-        self.views.detach_view(id)?;
+        self.gpu_views.detach_view(id)?;
         Ok(())
     }
 
@@ -68,20 +85,29 @@ impl EditorRuntime {
         css_height: u32,
         backing_scale: f32,
     ) -> Result<(), RuntimeError> {
-        logging::log(&format!(
-            "Resizing view {}: CSS {}x{}, scale {:.2}x, backing {}x{}",
-            id,
-            css_width,
-            css_height,
-            backing_scale,
-            (css_width as f32 * backing_scale) as u32,
-            (css_height as f32 * backing_scale) as u32
-        ));
+        let backing_width = (css_width as f32 * backing_scale) as u32;
+        let backing_height = (css_height as f32 * backing_scale) as u32;
+
+        logging::log(&format!("Resizing view {}", id));
 
         let gpu = self.gpu.as_ref().ok_or(RuntimeError::GpuNotInitialized)?;
 
-        self.views
-            .resize_view(id, css_width, css_height, backing_scale, gpu)?;
+        let view_id = ViewId::new(id.to_string());
+
+        if !self.engine.has_view(&view_id) {
+            return Err(RuntimeError::ViewNotFound(id.to_string()));
+        }
+
+        self.engine.resize_view(
+            &view_id,
+            css_width,
+            css_height,
+            backing_width,
+            backing_height,
+        );
+
+        self.gpu_views
+            .reconfigure_surface(id, backing_width, backing_height, gpu)?;
         Ok(())
     }
 
@@ -92,11 +118,9 @@ impl EditorRuntime {
         y: f32,
         zoom: f32,
     ) -> Result<(), RuntimeError> {
-        logging::log(&format!(
-            "Setting camera for view {}: ({}, {}) @ {}",
-            id, x, y, zoom
-        ));
-        self.views.set_view_camera(id, x, y, zoom)?;
+        logging::log(&format!("Setting camera for view {}", id));
+        let view_id = ViewId::new(id.to_string());
+        self.engine.set_view_camera(&view_id, x, y, zoom);
         Ok(())
     }
 
@@ -105,9 +129,87 @@ impl EditorRuntime {
         Ok(())
     }
 
+    pub fn handle_mouse_move(
+        &mut self,
+        id: &str,
+        screen_x: f32,
+        screen_y: f32,
+        shift: bool,
+        ctrl: bool,
+        alt: bool,
+    ) -> Result<(), RuntimeError> {
+        let event = crate::editor::input::MouseEvent {
+            kind: crate::editor::input::MouseEventKind::Move,
+            screen_pos: [screen_x, screen_y],
+        };
+        let modifiers = crate::editor::input::KeyModifiers { shift, ctrl, alt };
+        let view_id = ViewId::new(id.to_string());
+
+        self.engine.handle_mouse_event(&view_id, event, modifiers);
+        self.scheduler.mark_dirty(id);
+        Ok(())
+    }
+
+    pub fn handle_mouse_down(
+        &mut self,
+        id: &str,
+        screen_x: f32,
+        screen_y: f32,
+        button: u8,
+        shift: bool,
+        ctrl: bool,
+        alt: bool,
+    ) -> Result<(), RuntimeError> {
+        let mouse_button = match button {
+            0 => crate::editor::input::MouseButton::Left,
+            1 => crate::editor::input::MouseButton::Middle,
+            2 => crate::editor::input::MouseButton::Right,
+            _ => return Ok(()),
+        };
+
+        let event = crate::editor::input::MouseEvent {
+            kind: crate::editor::input::MouseEventKind::Down(mouse_button),
+            screen_pos: [screen_x, screen_y],
+        };
+        let modifiers = crate::editor::input::KeyModifiers { shift, ctrl, alt };
+        let view_id = ViewId::new(id.to_string());
+
+        self.engine.handle_mouse_event(&view_id, event, modifiers);
+        self.scheduler.mark_dirty(id);
+        Ok(())
+    }
+
+    pub fn handle_mouse_up(
+        &mut self,
+        id: &str,
+        screen_x: f32,
+        screen_y: f32,
+        button: u8,
+        shift: bool,
+        ctrl: bool,
+        alt: bool,
+    ) -> Result<(), RuntimeError> {
+        let mouse_button = match button {
+            0 => crate::editor::input::MouseButton::Left,
+            1 => crate::editor::input::MouseButton::Middle,
+            2 => crate::editor::input::MouseButton::Right,
+            _ => return Ok(()),
+        };
+
+        let event = crate::editor::input::MouseEvent {
+            kind: crate::editor::input::MouseEventKind::Up(mouse_button),
+            screen_pos: [screen_x, screen_y],
+        };
+        let modifiers = crate::editor::input::KeyModifiers { shift, ctrl, alt };
+        let view_id = ViewId::new(id.to_string());
+
+        self.engine.handle_mouse_event(&view_id, event, modifiers);
+        self.scheduler.mark_dirty(id);
+        Ok(())
+    }
+
     pub fn set_visible(&mut self, id: &str, visible: bool) -> Result<(), RuntimeError> {
-        logging::log(&format!("Setting visibility for view {}: {}", id, visible));
-        self.views.set_visible(id, visible)?;
+        self.gpu_views.set_visible(id, visible)?;
         Ok(())
     }
 
@@ -119,7 +221,7 @@ impl EditorRuntime {
         let dirty_views: Vec<String> = self.scheduler.dirty_views().cloned().collect();
 
         for view_id in dirty_views {
-            if let Some(state) = self.views.get(&view_id) {
+            if let Some(state) = self.gpu_views.get(&view_id) {
                 if state.attached && state.visible {
                     if let Err(e) = self.render_view_internal(&view_id) {
                         logging::error(&format!("Failed to render view {}: {}", view_id, e));
@@ -137,7 +239,7 @@ impl EditorRuntime {
         let gpu = self.gpu.as_ref().ok_or(RuntimeError::GpuNotInitialized)?;
 
         let state = self
-            .views
+            .gpu_views
             .get_mut(view_id)
             .ok_or_else(|| RuntimeError::ViewNotFound(view_id.to_string()))?;
 
@@ -183,11 +285,18 @@ impl EditorRuntime {
             RuntimeError::InvalidState("Glyphon text renderer not initialized".to_string())
         })?;
 
-        let pan = state.view.pan();
-        let zoom = state.view.zoom();
+        let engine_view_id = ViewId::new(view_id.to_string());
+
+        let editor_view = self
+            .engine
+            .get_view(&engine_view_id)
+            .ok_or_else(|| RuntimeError::ViewNotFound(view_id.to_string()))?;
+
+        let pan = editor_view.pan();
+        let zoom = editor_view.zoom();
         let viewport = [
-            state.view.backing_width() as f32,
-            state.view.backing_height() as f32,
+            editor_view.backing_width() as f32,
+            editor_view.backing_height() as f32,
         ];
 
         renderer.begin_frame();
@@ -197,7 +306,6 @@ impl EditorRuntime {
         sdf_renderer.set_viewport(&gpu.queue, viewport);
         glyphon_text_renderer.set_viewport(&gpu.queue, viewport);
 
-        let engine_view_id = crate::engine::ViewId::new(view_id.to_string());
         self.engine.draw_view(
             &engine_view_id,
             &gpu.queue,

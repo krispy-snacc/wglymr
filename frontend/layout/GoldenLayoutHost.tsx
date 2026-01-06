@@ -87,7 +87,6 @@ export function GoldenLayoutHost({ glymId, onLayoutReady }: GoldenLayoutHostProp
             if (!layoutReady) return;
             if (!gl.isInitialised) return;
             if (!gl.rootItem) return;
-            console.log("Hello there");
             queueMicrotask(() => {
                 if (!alive) return;
 

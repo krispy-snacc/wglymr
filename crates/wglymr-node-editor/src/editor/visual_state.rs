@@ -1,4 +1,5 @@
 use crate::document::commands::{EdgeId, NodeId, SocketId};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct EditorVisualState {
@@ -16,12 +17,27 @@ pub struct EditorVisualState {
 }
 
 #[derive(Debug, Clone)]
+pub struct NodeDragState {
+    pub start_mouse_world: [f32; 2],
+    pub drag_delta: [f32; 2],
+    pub start_positions: HashMap<NodeId, [f32; 2]>,
+}
+
+#[derive(Debug, Clone)]
 pub enum InteractionState {
     Idle,
     Panning,
-    BoxSelecting { start: [f32; 2], current: [f32; 2] },
-    DraggingNode { node_id: NodeId },
-    DraggingLink { from_socket: SocketId },
+    BoxSelecting {
+        start: [f32; 2],
+        current: [f32; 2],
+    },
+    DraggingNodes {
+        node_ids: Vec<NodeId>,
+        drag: NodeDragState,
+    },
+    DraggingLink {
+        from_socket: SocketId,
+    },
 }
 
 impl Default for EditorVisualState {

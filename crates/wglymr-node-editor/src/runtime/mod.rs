@@ -16,11 +16,11 @@ pub mod view_registry;
 use browser_render_loop::BrowserRenderLoop as RenderLoop;
 use gpu::GpuContext;
 use scheduler::Scheduler;
-use view_registry::ViewRegistry;
+use view_registry::GpuViewRegistry;
 
 pub struct EditorRuntime {
     gpu: Option<GpuContext>,
-    views: ViewRegistry,
+    gpu_views: GpuViewRegistry,
     scheduler: Scheduler,
     engine: EditorEngine,
 
@@ -30,12 +30,14 @@ pub struct EditorRuntime {
 
 impl EditorRuntime {
     fn new() -> Self {
-        let document = Box::new(crate::document::adapter::BasicDocumentAdapter::new());
+        // TEMPORARY: Using test adapter for visual validation
+        // TODO: Replace with real graph adapter when integration is complete
+        let document = Box::new(crate::document::test_adapter::TestDocumentAdapter::new());
         let engine = EditorEngine::new(document);
-        
+
         Self {
             gpu: None,
-            views: ViewRegistry::new(),
+            gpu_views: GpuViewRegistry::new(),
             scheduler: Scheduler::new(),
             engine,
             #[cfg(target_arch = "wasm32")]
@@ -43,7 +45,7 @@ impl EditorRuntime {
         }
     }
 
-    pub fn with<F, R>(f: F) -> R
+    pub fn with<R, F>(f: F) -> R
     where
         F: FnOnce(&mut EditorRuntime) -> R,
     {
@@ -61,12 +63,20 @@ impl EditorRuntime {
         self.gpu.as_mut()
     }
 
-    pub fn views(&self) -> &ViewRegistry {
-        &self.views
+    pub fn gpu_views(&self) -> &GpuViewRegistry {
+        &self.gpu_views
     }
 
-    pub fn views_mut(&mut self) -> &mut ViewRegistry {
-        &mut self.views
+    pub fn gpu_views_mut(&mut self) -> &mut GpuViewRegistry {
+        &mut self.gpu_views
+    }
+
+    pub fn engine(&self) -> &EditorEngine {
+        &self.engine
+    }
+
+    pub fn engine_mut(&mut self) -> &mut EditorEngine {
+        &mut self.engine
     }
 
     pub fn scheduler(&self) -> &Scheduler {

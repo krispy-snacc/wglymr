@@ -17,6 +17,7 @@ export function NodeEditorHost() {
     const viewCapability = capabilities.view;
     const commandCapability = capabilities.command;
     const lifecycleCapability = capabilities.lifecycle;
+    const inputCapability = capabilities.input;
 
     const viewId = viewCapability?.getViewId();
 
@@ -113,7 +114,7 @@ export function NodeEditorHost() {
 
     useEffect(() => {
         const container = containerRef.current;
-        if (!container || !commandCapability) return;
+        if (!container || !commandCapability || !inputCapability) return;
 
         const canvas = container.querySelector(
             `#node-editor-canvas-${viewId}`
@@ -135,6 +136,20 @@ export function NodeEditorHost() {
 
         const handlePointerDown = (event: PointerEvent) => {
             setActiveView(viewId);
+
+            const rect = canvas.getBoundingClientRect();
+            const screenX = event.clientX - rect.left;
+            const screenY = event.clientY - rect.top;
+
+            inputCapability.handleMouseDown(
+                screenX,
+                screenY,
+                event.button,
+                event.shiftKey,
+                event.ctrlKey,
+                event.altKey
+            );
+
             dragStateRef.current = {
                 active: true,
                 lastX: event.clientX,
@@ -146,25 +161,52 @@ export function NodeEditorHost() {
         };
 
         const handlePointerMove = (event: PointerEvent) => {
+            const rect = canvas.getBoundingClientRect();
+            const screenX = event.clientX - rect.left;
+            const screenY = event.clientY - rect.top;
+
+            inputCapability.handleMouseMove(
+                screenX,
+                screenY,
+                event.shiftKey,
+                event.ctrlKey,
+                event.altKey
+            );
+
             const drag = dragStateRef.current;
             if (!drag.active) return;
 
             const dx = event.clientX - drag.lastX;
             const dy = event.clientY - drag.lastY;
 
-            const command = cmd.routePointerDrag(
-                dx,
-                dy,
-                drag.button,
-                createInputContext(event)
-            );
-            dispatchCommand(command);
+            if (drag.button === 1) {
+                const command = cmd.routePointerDrag(
+                    dx,
+                    dy,
+                    drag.button,
+                    createInputContext(event)
+                );
+                dispatchCommand(command);
+            }
 
             drag.lastX = event.clientX;
             drag.lastY = event.clientY;
         };
 
         const handlePointerUp = (event: PointerEvent) => {
+            const rect = canvas.getBoundingClientRect();
+            const screenX = event.clientX - rect.left;
+            const screenY = event.clientY - rect.top;
+
+            inputCapability.handleMouseUp(
+                screenX,
+                screenY,
+                event.button,
+                event.shiftKey,
+                event.ctrlKey,
+                event.altKey
+            );
+
             if (activePointerId !== null) {
                 try {
                     canvas.releasePointerCapture(activePointerId);
@@ -221,7 +263,7 @@ export function NodeEditorHost() {
 
             unregisterViewDispatcher(viewId);
         };
-    }, [viewId, commandCapability, createInputContext, dispatchCommand]);
+    }, [viewId, commandCapability, inputCapability, createInputContext, dispatchCommand]);
 
     const handleContextMenuAction = useCallback(
         (action: string) => {

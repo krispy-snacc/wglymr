@@ -22,6 +22,8 @@ fn build_render_edge(
 
     Some(RenderEdge {
         edge_id: edge.edge_id,
+        from_socket: edge.from,
+        to_socket: edge.to,
         from,
         to,
     })

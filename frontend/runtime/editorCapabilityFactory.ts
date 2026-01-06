@@ -4,6 +4,7 @@ import type {
     ViewCapability,
     CommandCapability,
     ViewLifecycleCapability,
+    InputCapability,
 } from "@/editor-capabilities";
 import {
     setEditorViewVisible,
@@ -106,6 +107,68 @@ function createViewLifecycleCapability(
     };
 }
 
+function createInputCapability(viewId: string): InputCapability {
+    return {
+        handleMouseMove(
+            screenX: number,
+            screenY: number,
+            shift: boolean,
+            ctrl: boolean,
+            alt: boolean
+        ): void {
+            const wasm = getWasmModule();
+            if (!wasm || typeof wasm.handle_mouse_move !== "function") {
+                return;
+            }
+            wasm.handle_mouse_move(viewId, screenX, screenY, shift, ctrl, alt);
+        },
+        handleMouseDown(
+            screenX: number,
+            screenY: number,
+            button: number,
+            shift: boolean,
+            ctrl: boolean,
+            alt: boolean
+        ): void {
+            const wasm = getWasmModule();
+            if (!wasm || typeof wasm.handle_mouse_down !== "function") {
+                return;
+            }
+            wasm.handle_mouse_down(
+                viewId,
+                screenX,
+                screenY,
+                button,
+                shift,
+                ctrl,
+                alt
+            );
+        },
+        handleMouseUp(
+            screenX: number,
+            screenY: number,
+            button: number,
+            shift: boolean,
+            ctrl: boolean,
+            alt: boolean
+        ): void {
+            const wasm = getWasmModule();
+            if (!wasm || typeof wasm.handle_mouse_up !== "function") {
+                return;
+            }
+            wasm.handle_mouse_up(
+                viewId,
+                screenX,
+                screenY,
+                button,
+                shift,
+                ctrl,
+                alt
+            );
+        },
+    };
+}
+
 export function createEditorCapabilities(
     viewId: string | undefined
 ): EditorCapabilities {
@@ -118,5 +181,6 @@ export function createEditorCapabilities(
         view: createViewCapability(viewId),
         command: createCommandCapability(viewId),
         lifecycle: createViewLifecycleCapability(viewId),
+        input: createInputCapability(viewId),
     };
 }

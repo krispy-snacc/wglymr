@@ -1,7 +1,9 @@
 use crate::editor::hit_test::{HitResult, HitTestContext, NodeRegion, hit_test};
 use crate::editor::render_model::{RenderEdge, RenderNode};
-use crate::editor::visual_state::{EditorVisualState, InteractionState};
+use crate::editor::visual_state::{EditorVisualState, InteractionState, NodeDragState};
 use crate::engine::EditorView;
+use crate::runtime::logging;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MouseButton {
@@ -64,6 +66,11 @@ impl EditorInputHandler {
         ]
     }
 
+    fn mouse_coords_normalized(&self, screen_pos: [f32; 2], view: &EditorView) -> [f32; 2] {
+        let s = view.backing_scale();
+        [(screen_pos[0] * s), (screen_pos[1] * s)]
+    }
+
     pub fn handle_mouse_event(
         &mut self,
         event: MouseEvent,
@@ -72,15 +79,19 @@ impl EditorInputHandler {
         render_edges: &[RenderEdge],
         visual_state: &mut EditorVisualState,
     ) {
-        let mouse_world = self.screen_to_world(event.screen_pos, view);
-        self.last_mouse_screen = event.screen_pos;
+        let norm_screen_pos = self.mouse_coords_normalized(event.screen_pos, view);
+        logging::warn("Mouse Event");
+        let mouse_world = self.screen_to_world(norm_screen_pos, view);
+        self.last_mouse_screen = norm_screen_pos;
         self.last_mouse_world = mouse_world;
 
         match event.kind {
             MouseEventKind::Move => {
+                logging::warn("Mouse Moving");
                 self.handle_mouse_move(mouse_world, render_nodes, render_edges, visual_state);
             }
             MouseEventKind::Down(button) => {
+                logging::warn("Mouse Down");
                 self.mouse_down_button = Some(button);
                 if button == MouseButton::Left {
                     self.handle_left_mouse_down(
@@ -92,6 +103,7 @@ impl EditorInputHandler {
                 }
             }
             MouseEventKind::Up(button) => {
+                logging::warn("Mouse Up");
                 if self.mouse_down_button == Some(button) {
                     self.handle_mouse_up(button, visual_state);
                     self.mouse_down_button = None;
@@ -109,8 +121,20 @@ impl EditorInputHandler {
         visual_state: &mut EditorVisualState,
     ) {
         match &visual_state.interaction {
-            InteractionState::DraggingNode { node_id } => {
-                visual_state.interaction = InteractionState::DraggingNode { node_id: *node_id };
+            InteractionState::DraggingNodes { node_ids, drag } => {
+                let drag_delta = [
+                    mouse_world[0] - drag.start_mouse_world[0],
+                    mouse_world[1] - drag.start_mouse_world[1],
+                ];
+
+                visual_state.interaction = InteractionState::DraggingNodes {
+                    node_ids: node_ids.clone(),
+                    drag: NodeDragState {
+                        start_mouse_world: drag.start_mouse_world,
+                        drag_delta,
+                        start_positions: drag.start_positions.clone(),
+                    },
+                };
             }
             InteractionState::DraggingLink { from_socket } => {
                 visual_state.interaction = InteractionState::DraggingLink {
@@ -197,7 +221,27 @@ impl EditorInputHandler {
                 }
 
                 if region == NodeRegion::Header {
-                    visual_state.interaction = InteractionState::DraggingNode { node_id };
+                    let node_ids: Vec<_> = if visual_state.selected_nodes.contains(&node_id) {
+                        visual_state.selected_nodes.clone()
+                    } else {
+                        vec![node_id]
+                    };
+
+                    let mut start_positions = HashMap::new();
+                    for &id in &node_ids {
+                        if let Some(node) = render_nodes.iter().find(|n| n.node_id == id) {
+                            start_positions.insert(id, [node.bounds.min[0], node.bounds.min[1]]);
+                        }
+                    }
+
+                    visual_state.interaction = InteractionState::DraggingNodes {
+                        node_ids,
+                        drag: NodeDragState {
+                            start_mouse_world: mouse_world,
+                            drag_delta: [0.0, 0.0],
+                            start_positions,
+                        },
+                    };
                 }
             }
             HitResult::Edge { edge_id } => {
@@ -231,6 +275,16 @@ impl EditorInputHandler {
     }
 
     fn handle_mouse_up(&mut self, _button: MouseButton, visual_state: &mut EditorVisualState) {
-        visual_state.interaction = InteractionState::Idle;
+        match &visual_state.interaction {
+            InteractionState::DraggingNodes {
+                node_ids: _,
+                drag: _,
+            } => {
+                visual_state.interaction = InteractionState::Idle;
+            }
+            _ => {
+                visual_state.interaction = InteractionState::Idle;
+            }
+        }
     }
 }

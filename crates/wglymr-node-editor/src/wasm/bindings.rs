@@ -207,6 +207,56 @@ pub fn stop_render_loop() {
     });
 }
 
+#[wasm_bindgen]
+pub fn handle_mouse_move(
+    id: &str,
+    screen_x: f32,
+    screen_y: f32,
+    shift: bool,
+    ctrl: bool,
+    alt: bool,
+) {
+    EditorRuntime::with(|rt| {
+        if let Err(e) = rt.handle_mouse_move(id, screen_x, screen_y, shift, ctrl, alt) {
+            crate::runtime::logging::error(&format!("Failed to handle mouse move: {}", e));
+        }
+    });
+}
+
+#[wasm_bindgen]
+pub fn handle_mouse_down(
+    id: &str,
+    screen_x: f32,
+    screen_y: f32,
+    button: u8,
+    shift: bool,
+    ctrl: bool,
+    alt: bool,
+) {
+    EditorRuntime::with(|rt| {
+        if let Err(e) = rt.handle_mouse_down(id, screen_x, screen_y, button, shift, ctrl, alt) {
+            crate::runtime::logging::error(&format!("Failed to handle mouse down: {}", e));
+        }
+    });
+}
+
+#[wasm_bindgen]
+pub fn handle_mouse_up(
+    id: &str,
+    screen_x: f32,
+    screen_y: f32,
+    button: u8,
+    shift: bool,
+    ctrl: bool,
+    alt: bool,
+) {
+    EditorRuntime::with(|rt| {
+        if let Err(e) = rt.handle_mouse_up(id, screen_x, screen_y, button, shift, ctrl, alt) {
+            crate::runtime::logging::error(&format!("Failed to handle mouse up: {}", e));
+        }
+    });
+}
+
 /// Dispatch a command from the frontend to the runtime.
 ///
 /// This is the SINGLE ENTRY POINT for all user-initiated actions.

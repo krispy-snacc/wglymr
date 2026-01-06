@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::document::adapter::DocumentAdapter;
 use crate::editor::culling::{compute_view_bounds, is_edge_visible, is_node_visible};
-use crate::editor::input::{EditorInputHandler, KeyModifiers, MouseEvent, MouseEventKind};
+use crate::editor::input::{EditorInputHandler, KeyModifiers, MouseEvent};
 use crate::editor::layout::{NodeLayoutConstants, build_render_model};
 use crate::editor::renderer::NodeEditorRenderer;
 use crate::editor::visual_state::EditorVisualState;
@@ -15,9 +15,14 @@ impl ViewId {
     pub fn new(id: String) -> Self {
         Self(id)
     }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 /// Camera state and resolution. CSS dimensions for layout, backing dimensions for GPU rendering.
+#[derive(Debug, Clone, PartialEq)]
 pub struct EditorView {
     pan: [f32; 2],
     zoom: f32,
@@ -119,34 +124,67 @@ impl EditorEngine {
         self.views.insert(view_id, EditorView::new());
     }
 
+    pub fn get_view(&self, view_id: &ViewId) -> Option<&EditorView> {
+        self.views.get(view_id)
+    }
+
     pub fn has_view(&self, view_id: &ViewId) -> bool {
         self.views.contains_key(view_id)
     }
 
-    pub fn destroy_view(&mut self, view_id: ViewId) {
-        self.views.remove(&view_id);
+    pub fn destroy_view(&mut self, view_id: &ViewId) {
+        self.views.remove(view_id);
     }
 
     pub fn resize_view(
         &mut self,
-        view_id: ViewId,
+        view_id: &ViewId,
         css_width: u32,
         css_height: u32,
-        backing_scale: f32,
+        backing_width: u32,
+        backing_height: u32,
     ) {
-        if let Some(view) = self.views.get_mut(&view_id) {
-            view.resize(css_width, css_height, backing_scale);
+        if let Some(view) = self.views.get_mut(view_id) {
+            view.css_width = css_width;
+            view.css_height = css_height;
+            view.backing_width = backing_width;
+            view.backing_height = backing_height;
+            view.backing_scale = backing_width as f32 / css_width as f32;
         }
     }
 
-    pub fn set_view_camera(&mut self, view_id: ViewId, pan: [f32; 2], zoom: f32) {
-        if let Some(view) = self.views.get_mut(&view_id) {
-            view.set_camera(pan, zoom);
+    pub fn set_view_camera(&mut self, view_id: &ViewId, x: f32, y: f32, zoom: f32) {
+        if let Some(view) = self.views.get_mut(view_id) {
+            view.set_camera([x, y], zoom);
         }
     }
 
     pub fn visual_state(&self) -> &EditorVisualState {
         &self.visual_state
+    }
+
+    pub fn handle_mouse_event(
+        &mut self,
+        view_id: &ViewId,
+        event: MouseEvent,
+        modifiers: KeyModifiers,
+    ) {
+        let view = match self.views.get(view_id) {
+            Some(v) => v,
+            None => return,
+        };
+
+        let constants = NodeLayoutConstants::default();
+        let (render_nodes, render_edges) = build_render_model(self.document.as_ref(), &constants);
+
+        self.input_handler.set_modifiers(modifiers);
+        self.input_handler.handle_mouse_event(
+            event,
+            view,
+            &render_nodes,
+            &render_edges,
+            &mut self.visual_state,
+        );
     }
 
     pub fn draw_view(
@@ -166,31 +204,6 @@ impl EditorEngine {
         let (render_nodes, render_edges) = build_render_model(self.document.as_ref(), &constants);
         let view_bounds = compute_view_bounds(view);
 
-        let simulated_mouse_screen = [400.0, 300.0];
-        let simulated_move_event = MouseEvent {
-            kind: MouseEventKind::Move,
-            screen_pos: simulated_mouse_screen,
-        };
-
-        self.input_handler.set_modifiers(KeyModifiers {
-            shift: false,
-            ctrl: false,
-            alt: false,
-        });
-
-        self.input_handler.handle_mouse_event(
-            simulated_move_event,
-            view,
-            &render_nodes,
-            &render_edges,
-            &mut self.visual_state,
-        );
-
-        if render_nodes.len() > 1 {
-            self.visual_state.selected_nodes = vec![render_nodes[1].node_id];
-            self.visual_state.active_node = Some(render_nodes[1].node_id);
-        }
-
         let mut renderer = WgpuNodeEditorRenderer::new(primitive_renderer);
 
         if let Some(sdf) = sdf_renderer {
@@ -205,7 +218,7 @@ impl EditorEngine {
 
         for edge in &render_edges {
             if is_edge_visible(edge, &view_bounds) {
-                renderer.draw_edge(edge, view, &self.visual_state);
+                renderer.draw_edge(edge, view, &self.visual_state, &render_nodes);
             }
         }
 

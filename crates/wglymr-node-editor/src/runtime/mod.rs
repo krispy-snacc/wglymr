@@ -1,5 +1,7 @@
 use std::cell::RefCell;
 
+use crate::engine::EditorEngine;
+
 pub mod api;
 #[cfg(target_arch = "wasm32")]
 pub mod browser_render_loop;
@@ -20,6 +22,7 @@ pub struct EditorRuntime {
     gpu: Option<GpuContext>,
     views: ViewRegistry,
     scheduler: Scheduler,
+    engine: EditorEngine,
 
     #[cfg(target_arch = "wasm32")]
     render_loop: RenderLoop,
@@ -27,10 +30,14 @@ pub struct EditorRuntime {
 
 impl EditorRuntime {
     fn new() -> Self {
+        let document = Box::new(crate::document::adapter::BasicDocumentAdapter::new());
+        let engine = EditorEngine::new(document);
+        
         Self {
             gpu: None,
             views: ViewRegistry::new(),
             scheduler: Scheduler::new(),
+            engine,
             #[cfg(target_arch = "wasm32")]
             render_loop: RenderLoop::new(),
         }

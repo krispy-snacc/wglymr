@@ -2,8 +2,10 @@ use std::collections::HashMap;
 
 use crate::document::adapter::DocumentAdapter;
 use crate::editor::culling::{compute_view_bounds, is_edge_visible, is_node_visible};
+use crate::editor::input::{EditorInputHandler, KeyModifiers, MouseEvent, MouseEventKind};
 use crate::editor::layout::{NodeLayoutConstants, build_render_model};
 use crate::editor::renderer::NodeEditorRenderer;
+use crate::editor::visual_state::EditorVisualState;
 use crate::editor::wgpu_renderer::WgpuNodeEditorRenderer;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -99,6 +101,8 @@ impl EditorView {
 pub struct EditorEngine {
     views: HashMap<ViewId, EditorView>,
     document: Box<dyn DocumentAdapter>,
+    visual_state: EditorVisualState,
+    input_handler: EditorInputHandler,
 }
 
 impl EditorEngine {
@@ -106,6 +110,8 @@ impl EditorEngine {
         Self {
             views: HashMap::new(),
             document,
+            visual_state: EditorVisualState::default(),
+            input_handler: EditorInputHandler::new(),
         }
     }
 
@@ -139,14 +145,17 @@ impl EditorEngine {
         }
     }
 
-    /// Orchestrates rendering for a single view.
-    /// Builds render model from document, then submits draw calls via renderer.
-    /// Draw order: edges first (background), then nodes (foreground).
+    pub fn visual_state(&self) -> &EditorVisualState {
+        &self.visual_state
+    }
+
     pub fn draw_view(
         &mut self,
         view_id: &ViewId,
         queue: &wgpu::Queue,
         primitive_renderer: &mut wglymr_render_wgpu::PrimitiveRenderer,
+        sdf_renderer: Option<&mut wglymr_render_wgpu::SdfRenderer>,
+        text_renderer: Option<&mut wglymr_render_wgpu::GlyphonTextRenderer>,
     ) {
         let view = match self.views.get(view_id) {
             Some(v) => v,
@@ -157,20 +166,55 @@ impl EditorEngine {
         let (render_nodes, render_edges) = build_render_model(self.document.as_ref(), &constants);
         let view_bounds = compute_view_bounds(view);
 
+        let simulated_mouse_screen = [400.0, 300.0];
+        let simulated_move_event = MouseEvent {
+            kind: MouseEventKind::Move,
+            screen_pos: simulated_mouse_screen,
+        };
+
+        self.input_handler.set_modifiers(KeyModifiers {
+            shift: false,
+            ctrl: false,
+            alt: false,
+        });
+
+        self.input_handler.handle_mouse_event(
+            simulated_move_event,
+            view,
+            &render_nodes,
+            &render_edges,
+            &mut self.visual_state,
+        );
+
+        if render_nodes.len() > 1 {
+            self.visual_state.selected_nodes = vec![render_nodes[1].node_id];
+            self.visual_state.active_node = Some(render_nodes[1].node_id);
+        }
+
         let mut renderer = WgpuNodeEditorRenderer::new(primitive_renderer);
+
+        if let Some(sdf) = sdf_renderer {
+            sdf.begin_frame();
+            renderer = renderer.with_sdf_renderer(sdf);
+        }
+
+        if let Some(text) = text_renderer {
+            text.begin_frame();
+            renderer = renderer.with_text_renderer(text);
+        }
 
         for edge in &render_edges {
             if is_edge_visible(edge, &view_bounds) {
-                renderer.draw_edge(edge, view);
+                renderer.draw_edge(edge, view, &self.visual_state);
             }
         }
 
         for node in &render_nodes {
             if is_node_visible(node, &view_bounds) {
-                renderer.draw_node(node, view);
+                renderer.draw_node(node, view, &self.visual_state);
             }
         }
 
-        primitive_renderer.upload(queue);
+        renderer.upload(queue);
     }
 }

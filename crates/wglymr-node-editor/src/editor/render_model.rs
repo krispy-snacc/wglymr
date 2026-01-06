@@ -1,4 +1,7 @@
 use crate::document::commands::{EdgeId, NodeId, SocketId};
+use wglymr_color::Color;
+
+use super::ui::SocketVisualType;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rect {
@@ -45,14 +48,25 @@ impl Rect {
 pub struct RenderSocket {
     pub socket_id: SocketId,
     pub center: [f32; 2],
+    pub visual: SocketVisualType,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct NodeColors {
+    pub header: Color,
+    pub body: Color,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RenderNode {
     pub node_id: NodeId,
     pub bounds: Rect,
+    pub header_bounds: Rect,
+    pub body_bounds: Rect,
     pub title: String,
-    pub title_bounds: Rect,
+    pub title_position: [f32; 2],
+    pub colors: NodeColors,
+    pub corner_radius: f32,
     pub input_sockets: Vec<RenderSocket>,
     pub output_sockets: Vec<RenderSocket>,
     pub selected: bool,

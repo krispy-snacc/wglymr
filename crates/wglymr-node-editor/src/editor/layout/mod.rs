@@ -6,11 +6,21 @@ pub use node_layout::{NodeLayoutConstants, build_render_node, build_socket_posit
 
 use crate::document::adapter::DocumentAdapter;
 use crate::editor::render_model::{RenderEdge, RenderNode};
+use crate::editor::ui::{DefaultNodeUIProvider, NodeUIProvider};
 use std::collections::HashMap;
 
 pub fn build_render_model(
     document: &dyn DocumentAdapter,
     constants: &NodeLayoutConstants,
+) -> (Vec<RenderNode>, Vec<RenderEdge>) {
+    let ui_provider = DefaultNodeUIProvider::default();
+    build_render_model_with_provider(document, constants, &ui_provider)
+}
+
+pub fn build_render_model_with_provider(
+    document: &dyn DocumentAdapter,
+    constants: &NodeLayoutConstants,
+    ui_provider: &dyn NodeUIProvider,
 ) -> (Vec<RenderNode>, Vec<RenderEdge>) {
     let nodes = document.nodes();
     let sockets = document.sockets();
@@ -20,7 +30,10 @@ pub fn build_render_model(
 
     let render_nodes: Vec<RenderNode> = nodes
         .iter()
-        .map(|node| build_render_node(node, &socket_map, constants))
+        .map(|node| {
+            let ui_def = ui_provider.ui_definition(node, &socket_map);
+            build_render_node(node, &ui_def, constants)
+        })
         .collect();
 
     let socket_positions = build_socket_position_map(&render_nodes);

@@ -52,6 +52,13 @@ impl Color {
         self
     }
 
+    pub fn lighten(self, amount: f32) -> Self {
+        let r = (self.rgba.red + amount).min(1.0);
+        let g = (self.rgba.green + amount).min(1.0);
+        let b = (self.rgba.blue + amount).min(1.0);
+        Self::rgba(r, g, b, self.rgba.alpha)
+    }
+
     pub fn to_rgba_srgb(self) -> [f32; 4] {
         [
             self.rgba.red,

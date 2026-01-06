@@ -1,8 +1,3 @@
-use wglymr_color::Color;
-use wglymr_render_wgpu::RoundedRect;
-
-use crate::editor::wgpu_renderer::{world_to_screen, world_to_screen_size};
-
 use super::EditorRuntime;
 use super::errors::RuntimeError;
 
@@ -190,7 +185,6 @@ impl EditorRuntime {
 
         let pan = state.view.pan();
         let zoom = state.view.zoom();
-        // Viewport MUST be backing dimensions (actual render resolution)
         let viewport = [
             state.view.backing_width() as f32,
             state.view.backing_height() as f32,
@@ -198,44 +192,21 @@ impl EditorRuntime {
 
         renderer.begin_frame();
         renderer.set_viewport(&gpu.queue, viewport);
-
         renderer.draw_grid(pan, zoom, viewport);
-        renderer.upload(&gpu.queue);
 
-        glyphon_text_renderer.begin_frame();
+        sdf_renderer.set_viewport(&gpu.queue, viewport);
         glyphon_text_renderer.set_viewport(&gpu.queue, viewport);
 
-        let world_pos = [-48.0, -48.0];
-        let screen_pos = world_to_screen(world_pos, &state.view);
-        let world_font_size = 12.0;
-        let screen_font_size = world_font_size * zoom;
-
-        glyphon_text_renderer.draw_text(
-            "Hello Wglymr",
-            screen_pos,
-            screen_font_size,
-            Color::WHITE,
-            4,
+        let engine_view_id = crate::engine::ViewId::new(view_id.to_string());
+        self.engine.draw_view(
+            &engine_view_id,
+            &gpu.queue,
+            renderer,
+            Some(sdf_renderer),
+            Some(glyphon_text_renderer),
         );
 
-        glyphon_text_renderer.finish_batch();
-        glyphon_text_renderer.upload(&gpu.device, &gpu.queue);
-
-        sdf_renderer.begin_frame();
-        sdf_renderer.set_viewport(&gpu.queue, viewport);
-        sdf_renderer.set_layer(2);
-
-        sdf_renderer.draw_rounded_rect(&RoundedRect {
-            min: world_to_screen([-50.0, -50.0], &state.view),
-            max: world_to_screen([50.0, 50.0], &state.view),
-            radius: world_to_screen_size(4.0, &state.view),
-            border_width: world_to_screen_size(1.0, &state.view),
-            fill_color: Color::NODE_BG,
-            border_color: Color::BLACK,
-        });
-
-        sdf_renderer.finish_batch();
-        sdf_renderer.upload(&gpu.queue);
+        renderer.upload(&gpu.queue);
 
         let mut encoder = gpu
             .device

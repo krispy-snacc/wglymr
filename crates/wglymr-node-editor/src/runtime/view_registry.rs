@@ -220,4 +220,10 @@ impl GpuViewRegistry {
         state.visible = visible;
         Ok(())
     }
+
+    pub fn all_view_ids(&self) -> impl Iterator<Item = String> + '_ {
+        self.views
+            .keys()
+            .map(|view_id| view_id.as_str().to_string())
+    }
 }

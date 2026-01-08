@@ -1,9 +1,8 @@
 use crate::editor::render_model::{RenderEdge, RenderNode};
-use crate::editor::visual_state::EditorVisualState;
-use crate::engine::EditorView;
+use crate::engine::{EditorView, GlobalInteractionState};
 
 pub trait NodeEditorRenderer {
-    fn draw_node(&mut self, node: &RenderNode, view: &EditorView, visual: &EditorVisualState);
-    fn draw_edge(&mut self, edge: &RenderEdge, view: &EditorView, visual: &EditorVisualState, all_nodes: &[RenderNode]);
+    fn draw_node(&mut self, node: &RenderNode, view: &EditorView, global: &GlobalInteractionState);
+    fn draw_edge(&mut self, edge: &RenderEdge, view: &EditorView, global: &GlobalInteractionState, all_nodes: &[RenderNode]);
     fn upload(&mut self, queue: &wgpu::Queue);
 }

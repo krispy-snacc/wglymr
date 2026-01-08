@@ -1,0 +1,32 @@
+use crate::editor::input::event::MouseEventKind;
+use crate::editor::input::operator::{EditorOperator, OperatorContext, OperatorResult};
+
+pub struct BoxSelectOperator {
+    start: [f32; 2],
+}
+
+impl BoxSelectOperator {
+    pub fn new(start: [f32; 2]) -> Self {
+        Self { start }
+    }
+}
+
+impl EditorOperator for BoxSelectOperator {
+    fn on_enter(&mut self, ctx: &mut OperatorContext) {
+        self.start = ctx.mouse_world;
+    }
+
+    fn handle_event(&mut self, event: &crate::editor::input::event::MouseEvent, _ctx: &mut OperatorContext) -> OperatorResult {
+        match event.kind {
+            MouseEventKind::Move => {
+                OperatorResult::Continue
+            }
+            MouseEventKind::Up(_) => {
+                OperatorResult::Finished
+            }
+            _ => OperatorResult::Continue,
+        }
+    }
+
+    fn on_exit(&mut self, _ctx: &mut OperatorContext) {}
+}

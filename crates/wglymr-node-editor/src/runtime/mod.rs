@@ -93,12 +93,26 @@ impl EditorRuntime {
     }
 
     /// Called every frame by the render loop.
-    /// Checks if any views are dirty and renders them.
-    /// Does nothing if no views are dirty.
+    /// Blender-exact redraw scheduling:
+    /// - Modal operator active → render ALL views EVERY FRAME
+    /// - Operator just finished → render ALL views ONCE
+    /// - Otherwise → render only dirty views
     pub fn tick(&mut self) {
-        if self.scheduler.dirty_views().count() > 0 {
+        let modal_active = self.engine.has_active_operator();
+        let operator_finished = self.engine.operator_just_finished();
+
+        if modal_active {
+            if let Err(e) = self.render_all_views() {
+                logging::error(&format!("Modal render failed: {}", e));
+            }
+        } else if operator_finished {
+            if let Err(e) = self.render_all_views() {
+                logging::error(&format!("Finish render failed: {}", e));
+            }
+            self.engine.clear_operator_finished_flag();
+        } else if self.scheduler.dirty_views().count() > 0 {
             if let Err(e) = self.render_dirty_views() {
-                logging::error(&format!("Tick render failed: {}", e));
+                logging::error(&format!("Dirty render failed: {}", e));
             }
         }
     }

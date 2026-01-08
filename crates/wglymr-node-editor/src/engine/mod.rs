@@ -2,11 +2,22 @@ use std::collections::HashMap;
 
 use crate::document::adapter::DocumentAdapter;
 use crate::editor::culling::{compute_view_bounds, is_edge_visible, is_node_visible};
-use crate::editor::input::{EditorInputHandler, KeyModifiers, MouseEvent};
+use crate::editor::input::{InputDispatcher, KeyModifiers, MouseEvent, NodeDragState};
 use crate::editor::layout::{NodeLayoutConstants, build_render_model};
 use crate::editor::renderer::NodeEditorRenderer;
-use crate::editor::visual_state::EditorVisualState;
+use crate::editor::visual_state::ViewVisualState;
 use crate::editor::wgpu_renderer::WgpuNodeEditorRenderer;
+
+#[derive(Debug, Clone)]
+pub struct GlobalInteractionState {
+    pub node_drag: Option<NodeDragState>,
+}
+
+impl Default for GlobalInteractionState {
+    fn default() -> Self {
+        Self { node_drag: None }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ViewId(String);
@@ -34,6 +45,8 @@ pub struct EditorView {
     backing_height: u32,
 
     backing_scale: f32,
+
+    visual: ViewVisualState,
 }
 
 impl EditorView {
@@ -46,6 +59,7 @@ impl EditorView {
             backing_width: 800,
             backing_height: 600,
             backing_scale: 1.0,
+            visual: ViewVisualState::default(),
         }
     }
 
@@ -92,6 +106,14 @@ impl EditorView {
         self.backing_scale
     }
 
+    pub fn visual(&self) -> &ViewVisualState {
+        &self.visual
+    }
+
+    pub fn visual_mut(&mut self) -> &mut ViewVisualState {
+        &mut self.visual
+    }
+
     #[deprecated(note = "Use backing_width() or css_width() explicitly")]
     pub fn width(&self) -> u32 {
         self.backing_width
@@ -106,8 +128,8 @@ impl EditorView {
 pub struct EditorEngine {
     views: HashMap<ViewId, EditorView>,
     document: Box<dyn DocumentAdapter>,
-    visual_state: EditorVisualState,
-    input_handler: EditorInputHandler,
+    global_interaction: GlobalInteractionState,
+    input_handler: InputDispatcher,
 }
 
 impl EditorEngine {
@@ -115,8 +137,8 @@ impl EditorEngine {
         Self {
             views: HashMap::new(),
             document,
-            visual_state: EditorVisualState::default(),
-            input_handler: EditorInputHandler::new(),
+            global_interaction: GlobalInteractionState::default(),
+            input_handler: InputDispatcher::new(),
         }
     }
 
@@ -159,8 +181,28 @@ impl EditorEngine {
         }
     }
 
-    pub fn visual_state(&self) -> &EditorVisualState {
-        &self.visual_state
+    pub fn global_interaction(&self) -> &GlobalInteractionState {
+        &self.global_interaction
+    }
+
+    pub fn global_interaction_mut(&mut self) -> &mut GlobalInteractionState {
+        &mut self.global_interaction
+    }
+
+    pub fn is_modal_active(&self) -> bool {
+        self.global_interaction.node_drag.is_some()
+    }
+
+    pub fn has_active_operator(&self) -> bool {
+        self.input_handler.has_active_operator()
+    }
+
+    pub fn operator_just_finished(&self) -> bool {
+        self.input_handler.operator_just_finished()
+    }
+
+    pub fn clear_operator_finished_flag(&mut self) {
+        self.input_handler.clear_operator_finished_flag()
     }
 
     pub fn handle_mouse_event(
@@ -169,7 +211,7 @@ impl EditorEngine {
         event: MouseEvent,
         modifiers: KeyModifiers,
     ) {
-        let view = match self.views.get(view_id) {
+        let view = match self.views.get_mut(view_id) {
             Some(v) => v,
             None => return,
         };
@@ -183,7 +225,7 @@ impl EditorEngine {
             view,
             &render_nodes,
             &render_edges,
-            &mut self.visual_state,
+            &mut self.global_interaction,
         );
     }
 
@@ -218,13 +260,13 @@ impl EditorEngine {
 
         for edge in &render_edges {
             if is_edge_visible(edge, &view_bounds) {
-                renderer.draw_edge(edge, view, &self.visual_state, &render_nodes);
+                renderer.draw_edge(edge, view, &self.global_interaction, &render_nodes);
             }
         }
 
         for node in &render_nodes {
             if is_node_visible(node, &view_bounds) {
-                renderer.draw_node(node, view, &self.visual_state);
+                renderer.draw_node(node, view, &self.global_interaction);
             }
         }
 

@@ -121,8 +121,8 @@ fn hit_test_nodes(mouse_world: [f32; 2], nodes: &[RenderNode]) -> Option<HitResu
     None
 }
 
-fn hit_test_edges(mouse_world: [f32; 2], edges: &[RenderEdge]) -> Option<HitResult> {
-    let tolerance = 5.0;
+fn hit_test_edges(mouse_world: [f32; 2], edges: &[RenderEdge], zoom: f32) -> Option<HitResult> {
+    let tolerance = 5.0 / zoom;
 
     for edge in edges {
         let distance = distance_point_to_segment(mouse_world, edge.from, edge.to);
@@ -141,6 +141,7 @@ pub fn hit_test(
     context: HitTestContext,
     nodes: &[RenderNode],
     edges: &[RenderEdge],
+    zoom: f32,
 ) -> HitResult {
     if context != HitTestContext::BoxSelect {
         if let Some(result) = hit_test_sockets(mouse_world, nodes) {
@@ -153,7 +154,7 @@ pub fn hit_test(
     }
 
     if context != HitTestContext::BoxSelect {
-        if let Some(result) = hit_test_edges(mouse_world, edges) {
+        if let Some(result) = hit_test_edges(mouse_world, edges, zoom) {
             return result;
         }
     }

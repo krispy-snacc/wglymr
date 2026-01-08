@@ -235,6 +235,28 @@ impl EditorRuntime {
         Ok(())
     }
 
+    pub fn render_all_views(&mut self) -> Result<(), RuntimeError> {
+        if self.gpu.is_none() {
+            return Err(RuntimeError::GpuNotInitialized);
+        }
+
+        let all_views: Vec<String> = self.gpu_views.all_view_ids().collect();
+
+        for view_id in all_views {
+            if let Some(state) = self.gpu_views.get(&view_id) {
+                if state.attached && state.visible {
+                    if let Err(e) = self.render_view_internal(&view_id) {
+                        logging::error(&format!("Failed to render view {}: {}", view_id, e));
+                    } else {
+                        self.scheduler.clear_dirty(&view_id);
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     fn render_view_internal(&mut self, view_id: &str) -> Result<(), RuntimeError> {
         let gpu = self.gpu.as_ref().ok_or(RuntimeError::GpuNotInitialized)?;
 

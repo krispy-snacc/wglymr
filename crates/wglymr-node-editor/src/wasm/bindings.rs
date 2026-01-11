@@ -257,6 +257,40 @@ pub fn handle_mouse_up(
     });
 }
 
+#[wasm_bindgen]
+pub fn handle_mouse_enter(
+    id: &str,
+    screen_x: f32,
+    screen_y: f32,
+    button: u8,
+    shift: bool,
+    ctrl: bool,
+    alt: bool,
+) {
+    EditorRuntime::with(|rt| {
+        if let Err(e) = rt.handle_mouse_enter(id, screen_x, screen_y, button, shift, ctrl, alt) {
+            crate::runtime::logging::error(&format!("Failed to handle mouse enter: {}", e));
+        }
+    });
+}
+
+#[wasm_bindgen]
+pub fn handle_mouse_leave(
+    id: &str,
+    screen_x: f32,
+    screen_y: f32,
+    button: u8,
+    shift: bool,
+    ctrl: bool,
+    alt: bool,
+) {
+    EditorRuntime::with(|rt| {
+        if let Err(e) = rt.handle_mouse_leave(id, screen_x, screen_y, button, shift, ctrl, alt) {
+            crate::runtime::logging::error(&format!("Failed to handle mouse leave: {}", e));
+        }
+    });
+}
+
 /// Dispatch a command from the frontend to the runtime.
 ///
 /// This is the SINGLE ENTRY POINT for all user-initiated actions.

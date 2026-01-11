@@ -98,19 +98,22 @@ impl EditorRuntime {
     /// - Operator just finished → render ALL views ONCE
     /// - Otherwise → render only dirty views
     pub fn tick(&mut self) {
-        let modal_active = self.engine.has_active_operator();
+        let modal_active = self.engine.is_modal_active();
         let operator_finished = self.engine.operator_just_finished();
 
         if modal_active {
+            // logging::warn("Refreshing views: Modal Active");
             if let Err(e) = self.render_all_views() {
                 logging::error(&format!("Modal render failed: {}", e));
             }
         } else if operator_finished {
+            // logging::warn("Refreshing views: Operator Finished");
             if let Err(e) = self.render_all_views() {
                 logging::error(&format!("Finish render failed: {}", e));
             }
             self.engine.clear_operator_finished_flag();
         } else if self.scheduler.dirty_views().count() > 0 {
+            // logging::warn("Refreshing views: View Dirty");
             if let Err(e) = self.render_dirty_views() {
                 logging::error(&format!("Dirty render failed: {}", e));
             }

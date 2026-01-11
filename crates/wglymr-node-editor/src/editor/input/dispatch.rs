@@ -77,7 +77,7 @@ impl InputDispatcher {
 
         if !self.operator_stack.has_active() {
             self.operator_stack
-                .start(Box::new(NodeSelectOperator), &mut ctx);
+                .start(Box::new(NodeSelectOperator::new()), &mut ctx);
         }
 
         let result = self.operator_stack.handle_event(&event, &mut ctx);
@@ -89,7 +89,7 @@ impl InputDispatcher {
             OperatorResult::Finished | OperatorResult::Cancelled => {
                 self.operator_just_finished = true;
                 self.operator_stack
-                    .start(Box::new(NodeSelectOperator), &mut ctx);
+                    .start(Box::new(NodeSelectOperator::new()), &mut ctx);
             }
             OperatorResult::StartDragNodes { node_ids } => {
                 self.operator_just_finished = true;
@@ -107,10 +107,6 @@ impl InputDispatcher {
                     .start(Box::new(LinkDragOperator::new(from_socket)), &mut ctx);
             }
         }
-    }
-
-    pub fn has_active_operator(&self) -> bool {
-        self.operator_stack.has_active()
     }
 
     pub fn operator_just_finished(&self) -> bool {

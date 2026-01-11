@@ -1,7 +1,7 @@
 use wgpu::{Buffer, Device, Queue, RenderPass, TextureFormat};
 
-use crate::batch::PrimitiveBatch;
-use crate::gpu::{create_primitive_pipelines, PrimitivePipelines, ViewportResources};
+use super::PrimitiveBatch;
+use super::{PrimitivePipelines, ViewportResources, create_primitive_pipelines};
 
 const MAX_VERTICES: usize = 10000;
 
@@ -19,8 +19,7 @@ impl PrimitiveRenderer {
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Primitive Vertex Buffer"),
-            size: (MAX_VERTICES * std::mem::size_of::<crate::batch::Vertex>())
-                as wgpu::BufferAddress,
+            size: (MAX_VERTICES * std::mem::size_of::<super::Vertex>()) as wgpu::BufferAddress,
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -54,7 +53,7 @@ impl PrimitiveRenderer {
     }
 
     pub fn draw_grid(&mut self, pan_world: [f32; 2], zoom: f32, viewport: [f32; 2]) {
-        crate::draw::draw_grid(&mut self.batch, pan_world, zoom, viewport);
+        super::draw_grid(&mut self.batch, pan_world, zoom, viewport);
     }
 
     pub fn upload(&self, queue: &Queue) {

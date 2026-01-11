@@ -1,4 +1,4 @@
-use crate::batch::PrimitiveBatch;
+use super::batch::PrimitiveBatch;
 use wglymr_color::Color;
 
 const GRID_WORLD_SPACING: f32 = 60.0;

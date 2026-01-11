@@ -44,15 +44,15 @@ pub fn build_render_node(
 
     let header_bounds = Rect::new(
         [node.position.x, node.position.y],
-        [node.position.x + constants.width, node.position.y + header_height],
+        [
+            node.position.x + constants.width,
+            node.position.y + header_height,
+        ],
     );
 
     let body_bounds = Rect::new(
         [node.position.x, node.position.y + header_height],
-        [
-            node.position.x + constants.width,
-            node.position.y + height,
-        ],
+        [node.position.x + constants.width, node.position.y + height],
     );
 
     let socket_start_y = node.position.y + header_height + padding;
@@ -89,10 +89,7 @@ pub fn build_render_node(
         })
         .collect();
 
-    let title_position = [
-        node.position.x + padding,
-        node.position.y + padding,
-    ];
+    let title_position = [node.position.x + padding, node.position.y + padding];
 
     let colors = NodeColors {
         header: ui_def.header.color,
@@ -110,7 +107,7 @@ pub fn build_render_node(
         corner_radius: ui_def.body.corner_radius,
         input_sockets,
         output_sockets,
-        selected: false,
+        z_index: 0,
     }
 }
 

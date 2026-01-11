@@ -69,7 +69,7 @@ pub struct RenderNode {
     pub corner_radius: f32,
     pub input_sockets: Vec<RenderSocket>,
     pub output_sockets: Vec<RenderSocket>,
-    pub selected: bool,
+    pub z_index: i32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

@@ -1,4 +1,4 @@
-use crate::editor::input::event::MouseEventKind;
+use crate::editor::input::event::{MouseButton, MouseEventKind};
 use crate::editor::input::operator::{EditorOperator, OperatorContext, OperatorResult};
 
 pub struct BoxSelectOperator {
@@ -21,8 +21,11 @@ impl EditorOperator for BoxSelectOperator {
             MouseEventKind::Move => {
                 OperatorResult::Continue
             }
-            MouseEventKind::Up(_) => {
+            MouseEventKind::Up(MouseButton::Left) => {
                 OperatorResult::Finished
+            }
+            MouseEventKind::Down(MouseButton::Right) => {
+                OperatorResult::Cancelled
             }
             _ => OperatorResult::Continue,
         }

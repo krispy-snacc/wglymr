@@ -217,6 +217,36 @@ export function NodeEditorHost() {
             }
             dragStateRef.current.active = false;
         };
+        const handlePointerEnter = (event: PointerEvent) => {
+            const rect = canvas.getBoundingClientRect();
+            const screenX = event.clientX - rect.left;
+            const screenY = event.clientY - rect.top;
+
+            inputCapability.handleMouseEnter(
+                screenX,
+                screenY,
+                event.button,
+                event.shiftKey,
+                event.ctrlKey,
+                event.altKey
+            );
+
+        };
+        const handlePointerLeave = (event: PointerEvent) => {
+            const rect = canvas.getBoundingClientRect();
+            const screenX = event.clientX - rect.left;
+            const screenY = event.clientY - rect.top;
+
+            inputCapability.handleMouseUp(
+                screenX,
+                screenY,
+                event.button,
+                event.shiftKey,
+                event.ctrlKey,
+                event.altKey
+            );
+
+        };
 
         const handlePointerCancel = (event: PointerEvent) => {
             if (activePointerId !== null) {
@@ -239,6 +269,8 @@ export function NodeEditorHost() {
         canvas.addEventListener("pointerdown", handlePointerDown);
         canvas.addEventListener("pointermove", handlePointerMove);
         canvas.addEventListener("pointerup", handlePointerUp);
+        canvas.addEventListener("pointerenter", handlePointerEnter);
+        canvas.addEventListener("pointerleave", handlePointerLeave);
         canvas.addEventListener("pointercancel", handlePointerCancel);
         canvas.addEventListener("keydown", handleKeyDown);
 

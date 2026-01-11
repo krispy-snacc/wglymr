@@ -41,10 +41,6 @@ impl SdfRenderer {
         self.viewport.update(queue, viewport);
     }
 
-    pub fn set_layer(&mut self, layer: u8) {
-        self.batch.set_layer(layer);
-    }
-
     pub fn draw_rounded_rect(&mut self, rect: &RoundedRect) {
         self.batch.draw_rounded_rect(rect);
     }

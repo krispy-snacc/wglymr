@@ -2,7 +2,6 @@ use super::{RoundedRect, SdfVertex};
 
 pub struct SdfBatch {
     pub(crate) vertices: Vec<SdfVertex>,
-    current_layer: u8,
 }
 
 impl Default for SdfBatch {
@@ -15,17 +14,11 @@ impl SdfBatch {
     pub fn new() -> Self {
         Self {
             vertices: Vec::new(),
-            current_layer: 0,
         }
     }
 
     pub fn clear(&mut self) {
         self.vertices.clear();
-        self.current_layer = 0;
-    }
-
-    pub fn set_layer(&mut self, layer: u8) {
-        self.current_layer = layer;
     }
 
     pub fn is_empty(&self) -> bool {

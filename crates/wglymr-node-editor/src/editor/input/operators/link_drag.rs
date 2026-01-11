@@ -1,5 +1,5 @@
 use crate::document::commands::SocketId;
-use crate::editor::input::event::MouseEventKind;
+use crate::editor::input::event::{MouseButton, MouseEventKind};
 use crate::editor::input::operator::{EditorOperator, OperatorContext, OperatorResult};
 
 pub struct LinkDragOperator {
@@ -20,7 +20,8 @@ impl EditorOperator for LinkDragOperator {
     fn handle_event(&mut self, event: &crate::editor::input::event::MouseEvent, _ctx: &mut OperatorContext) -> OperatorResult {
         match event.kind {
             MouseEventKind::Move => OperatorResult::Continue,
-            MouseEventKind::Up(_) => OperatorResult::Finished,
+            MouseEventKind::Up(MouseButton::Left) => OperatorResult::Finished,
+            MouseEventKind::Down(MouseButton::Right) => OperatorResult::Cancelled,
             _ => OperatorResult::Continue,
         }
     }

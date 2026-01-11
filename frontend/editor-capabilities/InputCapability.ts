@@ -26,4 +26,20 @@ export interface InputCapability {
         ctrl: boolean,
         alt: boolean
     ): void;
+    handleMouseEnter(
+        screenX: number,
+        screenY: number,
+        button: number,
+        shift: boolean,
+        ctrl: boolean,
+        alt: boolean
+    ): void;
+    handleMouseLeave(
+        screenX: number,
+        screenY: number,
+        button: number,
+        shift: boolean,
+        ctrl: boolean,
+        alt: boolean
+    ): void;
 }

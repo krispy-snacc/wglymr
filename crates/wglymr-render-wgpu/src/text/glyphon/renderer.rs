@@ -25,7 +25,6 @@ struct TextBufferEntry {
     buffer: Buffer,
     position: [f32; 2],
     color: Color,
-    layer: u8,
 }
 
 impl GlyphonTextRenderer {
@@ -82,7 +81,6 @@ impl GlyphonTextRenderer {
         screen_position: [f32; 2],
         font_size_px: f32,
         color: Color,
-        layer: u8,
     ) {
         let mut buffer = Buffer::new(
             &mut self.font_system,
@@ -108,13 +106,8 @@ impl GlyphonTextRenderer {
             buffer,
             position: screen_position,
             color,
-            layer,
         });
         self.needs_prepare = true;
-    }
-
-    pub fn finish_batch(&mut self) {
-        self.text_buffers.sort_by_key(|entry| entry.layer);
     }
 
     pub fn upload(&mut self, device: &Device, queue: &Queue) {
@@ -165,10 +158,6 @@ impl GlyphonTextRenderer {
     }
 
     pub fn render<'a>(&'a mut self, render_pass: &mut RenderPass<'a>) {
-        if self.text_buffers.is_empty() {
-            return;
-        }
-
         self.text_renderer
             .render(&self.text_atlas, &self.viewport, render_pass)
             .expect("Failed to render text");

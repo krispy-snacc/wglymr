@@ -8,10 +8,6 @@ use wglymr_render_wgpu::{GlyphonTextRenderer, PrimitiveRenderer, RoundedRect, Sd
 pub mod layers {
     pub const GRID: u8 = 0;
     pub const EDGES: u8 = 1;
-    pub const NODE_BODY: u8 = 2;
-    pub const NODE_HEADER: u8 = 3;
-    pub const NODE_SOCKETS: u8 = 4;
-    pub const NODE_TEXT: u8 = 5;
     pub const WIDGETS: u8 = 6;
 }
 
@@ -81,7 +77,12 @@ impl<'a> WgpuNodeEditorRenderer<'a> {
         self
     }
 
-    fn draw_node_body(&mut self, node: &RenderNode, view: &EditorView, global: &GlobalInteractionState) {
+    fn draw_node_body(
+        &mut self,
+        node: &RenderNode,
+        view: &EditorView,
+        global: &GlobalInteractionState,
+    ) {
         if let Some(sdf) = &mut self.sdf_renderer {
             let offset = get_drag_offset(node.node_id, global);
             let min = [
@@ -96,8 +97,6 @@ impl<'a> WgpuNodeEditorRenderer<'a> {
             let screen_min = world_to_screen(min, view);
             let screen_max = world_to_screen(max, view);
             let radius = world_to_screen_size(node.corner_radius, view);
-
-            sdf.set_layer(layers::NODE_BODY);
 
             let is_active = view.visual().active_node == Some(node.node_id);
             let is_selected = view.visual().selected_nodes.contains(&node.node_id);
@@ -148,8 +147,6 @@ impl<'a> WgpuNodeEditorRenderer<'a> {
             let screen_max = world_to_screen(max, view);
             let radius = world_to_screen_size(node.corner_radius, view);
 
-            sdf.set_layer(layers::NODE_HEADER);
-
             let is_active = view.visual().active_node == Some(node.node_id);
             let is_selected = view.visual().selected_nodes.contains(&node.node_id);
             let is_hovered = view.visual().hovered_node == Some(node.node_id);
@@ -187,17 +184,16 @@ impl<'a> WgpuNodeEditorRenderer<'a> {
             let screen_pos = world_to_screen(pos, view);
             let font_size = world_to_screen_size(14.0, view);
 
-            text.draw_text(
-                &node.title,
-                screen_pos,
-                font_size,
-                Color::WHITE,
-                layers::NODE_TEXT,
-            );
+            text.draw_text(&node.title, screen_pos, font_size, Color::WHITE);
         }
     }
 
-    fn draw_sockets(&mut self, node: &RenderNode, view: &EditorView, global: &GlobalInteractionState) {
+    fn draw_sockets(
+        &mut self,
+        node: &RenderNode,
+        view: &EditorView,
+        global: &GlobalInteractionState,
+    ) {
         let base_socket_radius = world_to_screen_size(6.0, view);
         let offset = get_drag_offset(node.node_id, global);
 
@@ -250,7 +246,6 @@ impl<'a> WgpuNodeEditorRenderer<'a> {
         highlighted: bool,
     ) {
         if let Some(sdf) = &mut self.sdf_renderer {
-            sdf.set_layer(layers::NODE_SOCKETS);
             let min = [center[0] - radius, center[1] - radius];
             let max = [center[0] + radius, center[1] + radius];
 
@@ -303,14 +298,29 @@ impl<'a> NodeEditorRenderer for WgpuNodeEditorRenderer<'a> {
             .draw_line(screen_from, screen_to, color);
     }
 
-    fn upload(&mut self, queue: &wgpu::Queue) {
+    fn upload(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
         if let Some(sdf) = &mut self.sdf_renderer {
-            sdf.finish_batch();
             sdf.upload(queue);
         }
         if let Some(text) = &mut self.text_renderer {
-            text.finish_batch();
+            text.upload(device, queue);
         }
         self.primitive_renderer.upload(queue);
+    }
+
+    fn upload_primitives(&mut self, queue: &wgpu::Queue) {
+        self.primitive_renderer.upload(queue);
+    }
+
+    fn upload_sdf(&mut self, queue: &wgpu::Queue) {
+        if let Some(sdf) = &mut self.sdf_renderer {
+            sdf.upload(queue);
+        }
+    }
+
+    fn upload_text(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        if let Some(text) = &mut self.text_renderer {
+            text.upload(device, queue);
+        }
     }
 }

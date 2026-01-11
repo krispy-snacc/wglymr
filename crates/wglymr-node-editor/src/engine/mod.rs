@@ -193,10 +193,6 @@ impl EditorEngine {
         self.global_interaction.node_drag.is_some()
     }
 
-    pub fn has_active_operator(&self) -> bool {
-        self.input_handler.has_active_operator()
-    }
-
     pub fn operator_just_finished(&self) -> bool {
         self.input_handler.operator_just_finished()
     }
@@ -232,6 +228,7 @@ impl EditorEngine {
     pub fn draw_view(
         &mut self,
         view_id: &ViewId,
+        device: &wgpu::Device,
         queue: &wgpu::Queue,
         primitive_renderer: &mut wglymr_render_wgpu::PrimitiveRenderer,
         sdf_renderer: Option<&mut wglymr_render_wgpu::SdfRenderer>,
@@ -243,7 +240,31 @@ impl EditorEngine {
         };
 
         let constants = NodeLayoutConstants::default();
-        let (render_nodes, render_edges) = build_render_model(self.document.as_ref(), &constants);
+        let (mut render_nodes, render_edges) =
+            build_render_model(self.document.as_ref(), &constants);
+
+        for node in &mut render_nodes {
+            let mut z = 0;
+
+            if view.visual().selected_nodes.contains(&node.node_id) {
+                z += 100;
+            }
+
+            if view.visual().active_node == Some(node.node_id) {
+                z += 200;
+            }
+
+            if let Some(drag) = &self.global_interaction.node_drag {
+                if drag.node_ids.contains(&node.node_id) {
+                    z += 1000;
+                }
+            }
+
+            node.z_index = z;
+        }
+
+        render_nodes.sort_by_key(|n| n.z_index);
+
         let view_bounds = compute_view_bounds(view);
 
         let mut renderer = WgpuNodeEditorRenderer::new(primitive_renderer);
@@ -264,12 +285,14 @@ impl EditorEngine {
             }
         }
 
+        renderer.upload_primitives(queue);
+
         for node in &render_nodes {
             if is_node_visible(node, &view_bounds) {
                 renderer.draw_node(node, view, &self.global_interaction);
+                renderer.upload_sdf(queue);
             }
         }
-
-        renderer.upload(queue);
+        renderer.upload_text(device, queue);
     }
 }

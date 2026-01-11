@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::document::commands::NodeId;
-use crate::editor::input::event::MouseEventKind;
+use crate::editor::input::event::{MouseButton, MouseEventKind};
 use crate::editor::input::operator::{EditorOperator, OperatorContext, OperatorResult};
 use crate::editor::input::state::NodeDragState;
 
@@ -32,7 +32,11 @@ impl EditorOperator for NodeDragOperator {
         });
     }
 
-    fn handle_event(&mut self, event: &crate::editor::input::event::MouseEvent, ctx: &mut OperatorContext) -> OperatorResult {
+    fn handle_event(
+        &mut self,
+        event: &crate::editor::input::event::MouseEvent,
+        ctx: &mut OperatorContext,
+    ) -> OperatorResult {
         match event.kind {
             MouseEventKind::Move => {
                 if let Some(drag) = &mut ctx.global_interaction.node_drag {
@@ -43,9 +47,8 @@ impl EditorOperator for NodeDragOperator {
                 }
                 OperatorResult::Continue
             }
-            MouseEventKind::Up(_) => {
-                OperatorResult::Finished
-            }
+            MouseEventKind::Up(MouseButton::Left) => OperatorResult::Finished,
+            MouseEventKind::Down(MouseButton::Right) => OperatorResult::Cancelled,
             _ => OperatorResult::Continue,
         }
     }
@@ -54,4 +57,3 @@ impl EditorOperator for NodeDragOperator {
         ctx.global_interaction.node_drag = None;
     }
 }
-

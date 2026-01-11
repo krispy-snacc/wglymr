@@ -208,6 +208,64 @@ impl EditorRuntime {
         Ok(())
     }
 
+    pub fn handle_mouse_enter(
+        &mut self,
+        id: &str,
+        screen_x: f32,
+        screen_y: f32,
+        button: u8,
+        shift: bool,
+        ctrl: bool,
+        alt: bool,
+    ) -> Result<(), RuntimeError> {
+        let mouse_button = match button {
+            0 => crate::editor::input::MouseButton::Left,
+            1 => crate::editor::input::MouseButton::Middle,
+            2 => crate::editor::input::MouseButton::Right,
+            _ => return Ok(()),
+        };
+
+        let event = crate::editor::input::MouseEvent {
+            kind: crate::editor::input::MouseEventKind::Enter(mouse_button),
+            screen_pos: [screen_x, screen_y],
+        };
+        let modifiers = crate::editor::input::KeyModifiers { shift, ctrl, alt };
+        let view_id = ViewId::new(id.to_string());
+
+        self.engine.handle_mouse_event(&view_id, event, modifiers);
+        self.scheduler.mark_dirty(id);
+        Ok(())
+    }
+
+    pub fn handle_mouse_leave(
+        &mut self,
+        id: &str,
+        screen_x: f32,
+        screen_y: f32,
+        button: u8,
+        shift: bool,
+        ctrl: bool,
+        alt: bool,
+    ) -> Result<(), RuntimeError> {
+        let mouse_button = match button {
+            0 => crate::editor::input::MouseButton::Left,
+            1 => crate::editor::input::MouseButton::Middle,
+            2 => crate::editor::input::MouseButton::Right,
+            _ => return Ok(()),
+        };
+
+        let event = crate::editor::input::MouseEvent {
+            kind: crate::editor::input::MouseEventKind::Leave(mouse_button),
+            screen_pos: [screen_x, screen_y],
+        };
+        let modifiers = crate::editor::input::KeyModifiers { shift, ctrl, alt };
+        let view_id = ViewId::new(id.to_string());
+
+        self.engine.handle_mouse_event(&view_id, event, modifiers);
+        self.scheduler.mark_dirty(id);
+        Ok(())
+    }
+
     pub fn set_visible(&mut self, id: &str, visible: bool) -> Result<(), RuntimeError> {
         self.gpu_views.set_visible(id, visible)?;
         Ok(())
@@ -294,7 +352,7 @@ impl EditorRuntime {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let renderer = state
+        let primitive_renderer = state
             .renderer
             .as_mut()
             .ok_or_else(|| RuntimeError::InvalidState("Renderer not initialized".to_string()))?;
@@ -321,22 +379,22 @@ impl EditorRuntime {
             editor_view.backing_height() as f32,
         ];
 
-        renderer.begin_frame();
-        renderer.set_viewport(&gpu.queue, viewport);
-        renderer.draw_grid(pan, zoom, viewport);
+        primitive_renderer.begin_frame();
 
+        primitive_renderer.set_viewport(&gpu.queue, viewport);
         sdf_renderer.set_viewport(&gpu.queue, viewport);
         glyphon_text_renderer.set_viewport(&gpu.queue, viewport);
 
+        primitive_renderer.draw_grid(pan, zoom, viewport);
+
         self.engine.draw_view(
             &engine_view_id,
+            &gpu.device,
             &gpu.queue,
-            renderer,
+            primitive_renderer,
             Some(sdf_renderer),
             Some(glyphon_text_renderer),
         );
-
-        renderer.upload(&gpu.queue);
 
         let mut encoder = gpu
             .device
@@ -352,9 +410,9 @@ impl EditorRuntime {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.05,
-                            g: 0.05,
-                            b: 0.065,
+                            r: 18.0 / 255.0,
+                            g: 18.0 / 255.0,
+                            b: 18.0 / 255.0,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,
@@ -365,8 +423,8 @@ impl EditorRuntime {
                 occlusion_query_set: None,
             });
 
-            renderer.render_lines(&mut render_pass);
-            renderer.render_rects(&mut render_pass);
+            primitive_renderer.render_lines(&mut render_pass);
+            primitive_renderer.render_rects(&mut render_pass);
             sdf_renderer.render(&mut render_pass);
             glyphon_text_renderer.render(&mut render_pass);
         }

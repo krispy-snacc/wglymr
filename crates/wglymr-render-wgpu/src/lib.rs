@@ -1,20 +1,18 @@
-mod batch;
 mod buffers;
 mod device;
-mod draw;
 mod execute;
 mod gpu;
 mod pipeline;
-mod renderer;
+mod primitive;
 pub mod sdf;
 pub mod text;
 
-pub use batch::PrimitiveBatch;
 pub use device::{GpuContext, create_gpu_context};
-pub use draw::draw_grid;
 pub use execute::execute_wgsl_f32;
 pub use gpu::ViewportResources;
-pub use renderer::PrimitiveRenderer;
+pub use primitive::PrimitiveBatch;
+pub use primitive::PrimitiveRenderer;
+pub use primitive::draw_grid;
 pub use sdf::{RoundedRect, SdfBatch, SdfRenderer, SdfVertex};
 pub use text::GlyphonTextRenderer;
 

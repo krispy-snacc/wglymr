@@ -18,6 +18,8 @@ pub enum MouseEventKind {
     Down(MouseButton),
     Up(MouseButton),
     Wheel { delta: f32 },
+    Enter(MouseButton),
+    Leave(MouseButton),
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -166,6 +166,50 @@ function createInputCapability(viewId: string): InputCapability {
                 alt
             );
         },
+        handleMouseEnter(
+            screenX: number,
+            screenY: number,
+            button: number,
+            shift: boolean,
+            ctrl: boolean,
+            alt: boolean
+        ): void {
+            const wasm = getWasmModule();
+            if (!wasm || typeof wasm.handle_mouse_enter !== "function") {
+                return;
+            }
+            wasm.handle_mouse_enter(
+                viewId,
+                screenX,
+                screenY,
+                button,
+                shift,
+                ctrl,
+                alt
+            );
+        },
+        handleMouseLeave(
+            screenX: number,
+            screenY: number,
+            button: number,
+            shift: boolean,
+            ctrl: boolean,
+            alt: boolean
+        ): void {
+            const wasm = getWasmModule();
+            if (!wasm || typeof wasm.handle_mouse_leave !== "function") {
+                return;
+            }
+            wasm.handle_mouse_leave(
+                viewId,
+                screenX,
+                screenY,
+                button,
+                shift,
+                ctrl,
+                alt
+            );
+        },
     };
 }
 

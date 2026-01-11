@@ -318,12 +318,12 @@ impl EditorRuntime {
     fn render_view_internal(&mut self, view_id: &str) -> Result<(), RuntimeError> {
         let gpu = self.gpu.as_ref().ok_or(RuntimeError::GpuNotInitialized)?;
 
-        let state = self
+        let gpu_state = self
             .gpu_views
             .get_mut(view_id)
             .ok_or_else(|| RuntimeError::ViewNotFound(view_id.to_string()))?;
 
-        let surface = match &state.surface {
+        let surface = match &gpu_state.surface {
             Some(super::gpu::SurfaceHandle::Web(s)) => s,
             None => {
                 return Err(RuntimeError::InvalidState(
@@ -332,7 +332,7 @@ impl EditorRuntime {
             }
         };
 
-        state
+        gpu_state
             .config
             .as_ref()
             .ok_or_else(|| RuntimeError::InvalidState("Surface not configured".to_string()))?;
@@ -352,16 +352,16 @@ impl EditorRuntime {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let primitive_renderer = state
-            .renderer
+        let primitive_renderer = gpu_state
+            .primitive_renderer
             .as_mut()
             .ok_or_else(|| RuntimeError::InvalidState("Renderer not initialized".to_string()))?;
 
-        let sdf_renderer = state.sdf_renderer.as_mut().ok_or_else(|| {
+        let sdf_renderer = gpu_state.sdf_renderer.as_mut().ok_or_else(|| {
             RuntimeError::InvalidState("Sdf renderer not initialized".to_string())
         })?;
 
-        let glyphon_text_renderer = state.glyphon_text_renderer.as_mut().ok_or_else(|| {
+        let glyphon_text_renderer = gpu_state.glyphon_text_renderer.as_mut().ok_or_else(|| {
             RuntimeError::InvalidState("Glyphon text renderer not initialized".to_string())
         })?;
 
@@ -380,6 +380,8 @@ impl EditorRuntime {
         ];
 
         primitive_renderer.begin_frame();
+        sdf_renderer.begin_frame();
+        glyphon_text_renderer.begin_frame();
 
         primitive_renderer.set_viewport(&gpu.queue, viewport);
         sdf_renderer.set_viewport(&gpu.queue, viewport);

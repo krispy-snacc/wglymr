@@ -9,13 +9,15 @@ export function Navbar() {
         <nav className="h-12 border-b border-white/10 bg-black/30 backdrop-blur-xl px-4 md:px-6 flex items-center justify-between">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity shrink-0">
-                <Image
-                    src="/wglymr_logo_full.svg"
-                    alt="wglymr"
-                    width={100}
-                    height={24}
-                    className="h-5 md:h-6 w-auto"
-                />
+                <div className="relative h-5 md:h-6" style={{ width: "auto", aspectRatio: "624/238" }}>
+                    <Image
+                        src="/wglymr_logo_full.svg"
+                        alt="wglymr"
+                        fill
+                        priority
+                        className="object-contain"
+                    />
+                </div>
             </Link>
 
             {/* Right Side Links */}

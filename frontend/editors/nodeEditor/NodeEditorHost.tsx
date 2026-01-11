@@ -78,13 +78,19 @@ export function NodeEditorHost() {
             const height = container.clientHeight;
 
             lifecycleCapability.attachView(canvas, width, height);
-
-            renderCapability.setVisible(true);
-            renderCapability.requestRender();
-
+            if (!(width * height == 0)) {
+                renderCapability.setVisible(true);
+                renderCapability.requestRender();
+            }
             resizeObserver = new ResizeObserver((entries) => {
                 for (const entry of entries) {
                     const { width, height } = entry.contentRect;
+                    if (width * height == 0) {
+                        renderCapability.setVisible(false);
+                        continue;
+                    }
+
+                    renderCapability.setVisible(true);
                     renderCapability.resize(width, height);
                     renderCapability.requestRender();
                 }

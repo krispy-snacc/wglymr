@@ -9,7 +9,7 @@ pub struct GpuViewState {
     pub attached: bool,
     pub surface: Option<SurfaceHandle>,
     pub config: Option<wgpu::SurfaceConfiguration>,
-    pub renderer: Option<PrimitiveRenderer>,
+    pub primitive_renderer: Option<PrimitiveRenderer>,
     pub sdf_renderer: Option<SdfRenderer>,
     pub glyphon_text_renderer: Option<GlyphonTextRenderer>,
 }
@@ -21,7 +21,7 @@ impl GpuViewState {
             attached: false,
             surface: None,
             config: None,
-            renderer: None,
+            primitive_renderer: None,
             sdf_renderer: None,
             glyphon_text_renderer: None,
         }
@@ -107,13 +107,13 @@ impl GpuViewRegistry {
 
         wgpu_surface.configure(&gpu.device, &config);
 
-        let renderer = PrimitiveRenderer::new(&gpu.device, format);
+        let primitive_renderer = PrimitiveRenderer::new(&gpu.device, format);
         let sdf_renderer = SdfRenderer::new(&gpu.device, format);
         let glyphon_text_renderer = GlyphonTextRenderer::new(&gpu.device, &gpu.queue, format);
 
         state.surface = Some(surface);
         state.config = Some(config);
-        state.renderer = Some(renderer);
+        state.primitive_renderer = Some(primitive_renderer);
         state.sdf_renderer = Some(sdf_renderer);
         state.glyphon_text_renderer = Some(glyphon_text_renderer);
         state.attached = true;
@@ -130,7 +130,7 @@ impl GpuViewRegistry {
 
         state.surface = None;
         state.config = None;
-        state.renderer = None;
+        state.primitive_renderer = None;
         state.sdf_renderer = None;
         state.glyphon_text_renderer = None;
         state.attached = false;

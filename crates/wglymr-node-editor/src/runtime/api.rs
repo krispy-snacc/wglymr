@@ -361,8 +361,8 @@ impl EditorRuntime {
             RuntimeError::InvalidState("Sdf renderer not initialized".to_string())
         })?;
 
-        let glyphon_text_renderer = gpu_state.glyphon_text_renderer.as_mut().ok_or_else(|| {
-            RuntimeError::InvalidState("Glyphon text renderer not initialized".to_string())
+        let msdf_text_renderer = gpu_state.msdf_text_renderer.as_mut().ok_or_else(|| {
+            RuntimeError::InvalidState("MSDF text renderer not initialized".to_string())
         })?;
 
         let engine_view_id = ViewId::new(view_id.to_string());
@@ -381,11 +381,11 @@ impl EditorRuntime {
 
         primitive_renderer.begin_frame();
         sdf_renderer.begin_frame();
-        glyphon_text_renderer.begin_frame();
+        msdf_text_renderer.begin_frame();
 
         primitive_renderer.set_viewport(&gpu.queue, viewport);
         sdf_renderer.set_viewport(&gpu.queue, viewport);
-        glyphon_text_renderer.set_viewport(&gpu.queue, viewport);
+        msdf_text_renderer.set_viewport(&gpu.queue, viewport);
 
         primitive_renderer.draw_grid(pan, zoom, viewport);
 
@@ -395,7 +395,7 @@ impl EditorRuntime {
             &gpu.queue,
             primitive_renderer,
             Some(sdf_renderer),
-            Some(glyphon_text_renderer),
+            Some(msdf_text_renderer),
         );
 
         let mut encoder = gpu
@@ -428,7 +428,7 @@ impl EditorRuntime {
             primitive_renderer.render_lines(&mut render_pass);
             primitive_renderer.render_rects(&mut render_pass);
             sdf_renderer.render(&mut render_pass);
-            glyphon_text_renderer.render(&mut render_pass);
+            msdf_text_renderer.render(&mut render_pass);
         }
 
         gpu.queue.submit(std::iter::once(encoder.finish()));

@@ -3,6 +3,8 @@ pub mod input;
 pub mod layout;
 pub mod render_model;
 pub mod renderer;
+pub mod text;
+pub mod text_renderer_msdf_adapter;
 pub mod ui;
 pub mod visual_state;
 pub mod wgpu_renderer;

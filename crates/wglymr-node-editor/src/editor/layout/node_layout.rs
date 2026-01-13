@@ -108,6 +108,7 @@ pub fn build_render_node(
         input_sockets,
         output_sockets,
         z_index: 0,
+        text_runs: Vec::new(),
     }
 }
 

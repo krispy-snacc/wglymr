@@ -14,7 +14,7 @@ pub use primitive::PrimitiveBatch;
 pub use primitive::PrimitiveRenderer;
 pub use primitive::draw_grid;
 pub use sdf::{RoundedRect, SdfBatch, SdfRenderer, SdfVertex};
-pub use text::GlyphonTextRenderer;
+pub use text::MsdfTextRenderer;
 
 #[cfg(test)]
 mod tests {

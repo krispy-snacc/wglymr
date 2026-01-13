@@ -1,3 +1,3 @@
-pub mod glyphon;
+pub mod msdf;
 
-pub use glyphon::GlyphonTextRenderer;
+pub use msdf::MsdfTextRenderer;

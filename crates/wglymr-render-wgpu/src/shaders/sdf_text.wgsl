@@ -33,8 +33,17 @@ fn vs_main(in: VertexInput) -> VertexOutput {
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let sample = textureSample(glyph_texture, glyph_sampler, in.uv);
-    let dist = sample.r;
-    let w = fwidth(dist) * 0.5;
-    let alpha = smoothstep(0.5 - w, 0.5 + w, dist);
+    
+    let median_dist = median3(sample.r, sample.g, sample.b);
+    
+    let dist_px = 4.0 * (median_dist - 0.5);
+    
+    let w = fwidth(dist_px);
+    let alpha = smoothstep(-w, w, dist_px);
+    
     return vec4(in.color.rgb, in.color.a * alpha);
+}
+
+fn median3(r: f32, g: f32, b: f32) -> f32 {
+    return max(min(r, g), min(max(r, g), b));
 }

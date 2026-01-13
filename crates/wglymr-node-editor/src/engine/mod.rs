@@ -5,6 +5,7 @@ use crate::editor::culling::{compute_view_bounds, is_edge_visible, is_node_visib
 use crate::editor::input::{InputDispatcher, KeyModifiers, MouseEvent, NodeDragState};
 use crate::editor::layout::{NodeLayoutConstants, build_render_model};
 use crate::editor::renderer::NodeEditorRenderer;
+use crate::editor::text::GlyphRun;
 use crate::editor::visual_state::ViewVisualState;
 use crate::editor::wgpu_renderer::WgpuNodeEditorRenderer;
 
@@ -47,6 +48,7 @@ pub struct EditorView {
     backing_scale: f32,
 
     visual: ViewVisualState,
+    pub text_runs: Vec<GlyphRun>,
 }
 
 impl EditorView {
@@ -60,6 +62,7 @@ impl EditorView {
             backing_height: 600,
             backing_scale: 1.0,
             visual: ViewVisualState::default(),
+            text_runs: Vec::new(),
         }
     }
 
@@ -232,12 +235,14 @@ impl EditorEngine {
         queue: &wgpu::Queue,
         primitive_renderer: &mut wglymr_render_wgpu::PrimitiveRenderer,
         sdf_renderer: Option<&mut wglymr_render_wgpu::SdfRenderer>,
-        text_renderer: Option<&mut wglymr_render_wgpu::GlyphonTextRenderer>,
+        text_renderer: Option<&mut dyn crate::editor::renderer::NodeEditorTextRenderer>,
     ) {
-        let view = match self.views.get(view_id) {
+        let view = match self.views.get_mut(view_id) {
             Some(v) => v,
             None => return,
         };
+
+        view.text_runs.clear();
 
         let constants = NodeLayoutConstants::default();
         let (mut render_nodes, render_edges) =
@@ -261,6 +266,9 @@ impl EditorEngine {
             }
 
             node.z_index = z;
+
+            let text_run = crate::editor::text::layout_node_title(node, view, z);
+            node.text_runs.push(text_run);
         }
 
         render_nodes.sort_by_key(|n| n.z_index);
@@ -290,9 +298,10 @@ impl EditorEngine {
         for node in &render_nodes {
             if is_node_visible(node, &view_bounds) {
                 renderer.draw_node(node, view, &self.global_interaction);
-                renderer.upload_sdf(queue);
+                renderer.upload_primitives_for_node(queue);
+                renderer.upload_sdf_for_node(queue);
+                renderer.upload_text_for_node(device, queue);
             }
         }
-        renderer.upload_text(device, queue);
     }
 }

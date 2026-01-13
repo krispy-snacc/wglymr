@@ -2,7 +2,7 @@ use super::errors::RuntimeError;
 use super::gpu::SurfaceHandle;
 use crate::engine::ViewId;
 use std::collections::HashMap;
-use wglymr_render_wgpu::{GlyphonTextRenderer, PrimitiveRenderer, SdfRenderer};
+use wglymr_render_wgpu::{MsdfTextRenderer, PrimitiveRenderer, SdfRenderer};
 
 pub struct GpuViewState {
     pub visible: bool,
@@ -11,7 +11,7 @@ pub struct GpuViewState {
     pub config: Option<wgpu::SurfaceConfiguration>,
     pub primitive_renderer: Option<PrimitiveRenderer>,
     pub sdf_renderer: Option<SdfRenderer>,
-    pub glyphon_text_renderer: Option<GlyphonTextRenderer>,
+    pub msdf_text_renderer: Option<MsdfTextRenderer>,
 }
 
 impl GpuViewState {
@@ -23,7 +23,7 @@ impl GpuViewState {
             config: None,
             primitive_renderer: None,
             sdf_renderer: None,
-            glyphon_text_renderer: None,
+            msdf_text_renderer: None,
         }
     }
 }
@@ -109,13 +109,13 @@ impl GpuViewRegistry {
 
         let primitive_renderer = PrimitiveRenderer::new(&gpu.device, format);
         let sdf_renderer = SdfRenderer::new(&gpu.device, format);
-        let glyphon_text_renderer = GlyphonTextRenderer::new(&gpu.device, &gpu.queue, format);
+        let msdf_text_renderer = MsdfTextRenderer::new(&gpu.device, format);
 
         state.surface = Some(surface);
         state.config = Some(config);
         state.primitive_renderer = Some(primitive_renderer);
         state.sdf_renderer = Some(sdf_renderer);
-        state.glyphon_text_renderer = Some(glyphon_text_renderer);
+        state.msdf_text_renderer = Some(msdf_text_renderer);
         state.attached = true;
 
         Ok(())
@@ -132,7 +132,7 @@ impl GpuViewRegistry {
         state.config = None;
         state.primitive_renderer = None;
         state.sdf_renderer = None;
-        state.glyphon_text_renderer = None;
+        state.msdf_text_renderer = None;
         state.attached = false;
         Ok(())
     }

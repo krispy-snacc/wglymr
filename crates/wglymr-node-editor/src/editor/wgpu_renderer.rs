@@ -1,9 +1,9 @@
 use crate::document::commands::NodeId;
 use crate::editor::render_model::{RenderEdge, RenderNode};
-use crate::editor::renderer::NodeEditorRenderer;
+use crate::editor::renderer::{NodeEditorRenderer, NodeEditorTextRenderer};
 use crate::engine::{EditorView, GlobalInteractionState};
 use wglymr_color::Color;
-use wglymr_render_wgpu::{GlyphonTextRenderer, PrimitiveRenderer, RoundedRect, SdfRenderer};
+use wglymr_render_wgpu::{PrimitiveRenderer, RoundedRect, SdfRenderer};
 
 pub mod layers {
     pub const GRID: u8 = 0;
@@ -55,7 +55,7 @@ pub fn world_to_screen_size(size: f32, view: &EditorView) -> f32 {
 pub struct WgpuNodeEditorRenderer<'a> {
     primitive_renderer: &'a mut PrimitiveRenderer,
     sdf_renderer: Option<&'a mut SdfRenderer>,
-    text_renderer: Option<&'a mut GlyphonTextRenderer>,
+    text_renderer: Option<&'a mut dyn NodeEditorTextRenderer>,
 }
 
 impl<'a> WgpuNodeEditorRenderer<'a> {
@@ -72,7 +72,7 @@ impl<'a> WgpuNodeEditorRenderer<'a> {
         self
     }
 
-    pub fn with_text_renderer(mut self, text_renderer: &'a mut GlyphonTextRenderer) -> Self {
+    pub fn with_text_renderer(mut self, text_renderer: &'a mut dyn NodeEditorTextRenderer) -> Self {
         self.text_renderer = Some(text_renderer);
         self
     }
@@ -168,23 +168,23 @@ impl<'a> WgpuNodeEditorRenderer<'a> {
         }
     }
 
-    fn draw_node_title(
+    fn draw_node_text(
         &mut self,
         node: &RenderNode,
         view: &EditorView,
         global: &GlobalInteractionState,
     ) {
-        if let Some(text) = &mut self.text_renderer {
-            let offset = get_drag_offset(node.node_id, global);
-            let pos = [
-                node.title_position[0] + offset[0],
-                node.title_position[1] + offset[1],
-            ];
-
-            let screen_pos = world_to_screen(pos, view);
-            let font_size = world_to_screen_size(14.0, view);
-
-            text.draw_text(&node.title, screen_pos, font_size, Color::WHITE);
+        if let Some(text_renderer) = &mut self.text_renderer {
+            for run in &node.text_runs {
+                let drag_offset = get_drag_offset(node.node_id, global);
+                let world_pos = [
+                    run.world_position[0] + drag_offset[0],
+                    run.world_position[1] + drag_offset[1],
+                ];
+                let screen_pos = world_to_screen(world_pos, view);
+                let font_size = world_to_screen_size(run.font_size, view).max(1.0);
+                text_renderer.draw_text_immediate(&run.text, screen_pos, font_size, run.color);
+            }
         }
     }
 
@@ -266,6 +266,20 @@ impl<'a> WgpuNodeEditorRenderer<'a> {
             sdf.draw_rounded_rect(&rect);
         }
     }
+
+    pub fn draw_text_runs(
+        &mut self,
+        view_mut: &mut EditorView,
+        global: &GlobalInteractionState,
+        collected_text_runs: Vec<super::text::GlyphRun>,
+    ) {
+        view_mut.text_runs.extend(collected_text_runs);
+        view_mut.text_runs.sort_by_key(|run| run.z_index);
+
+        if let Some(text_r) = &mut self.text_renderer {
+            text_r.draw_runs(view_mut, global, &view_mut.text_runs);
+        }
+    }
 }
 
 impl<'a> NodeEditorRenderer for WgpuNodeEditorRenderer<'a> {
@@ -273,7 +287,18 @@ impl<'a> NodeEditorRenderer for WgpuNodeEditorRenderer<'a> {
         self.draw_node_body(node, view, global);
         self.draw_node_header(node, view, global);
         self.draw_sockets(node, view, global);
-        self.draw_node_title(node, view, global);
+        self.draw_node_text(node, view, global);
+    }
+
+    fn draw_node_geometry(
+        &mut self,
+        node: &RenderNode,
+        view: &EditorView,
+        global: &GlobalInteractionState,
+    ) {
+        self.draw_node_body(node, view, global);
+        self.draw_node_header(node, view, global);
+        self.draw_sockets(node, view, global);
     }
 
     fn draw_edge(
@@ -299,13 +324,9 @@ impl<'a> NodeEditorRenderer for WgpuNodeEditorRenderer<'a> {
     }
 
     fn upload(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
-        if let Some(sdf) = &mut self.sdf_renderer {
-            sdf.upload(queue);
-        }
-        if let Some(text) = &mut self.text_renderer {
-            text.upload(device, queue);
-        }
-        self.primitive_renderer.upload(queue);
+        self.upload_primitives(queue);
+        self.upload_sdf(queue);
+        self.upload_text(device, queue);
     }
 
     fn upload_primitives(&mut self, queue: &wgpu::Queue) {
@@ -319,6 +340,22 @@ impl<'a> NodeEditorRenderer for WgpuNodeEditorRenderer<'a> {
     }
 
     fn upload_text(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        if let Some(text) = &mut self.text_renderer {
+            text.upload(device, queue);
+        }
+    }
+
+    fn upload_primitives_for_node(&mut self, queue: &wgpu::Queue) {
+        self.primitive_renderer.upload(queue);
+    }
+
+    fn upload_sdf_for_node(&mut self, queue: &wgpu::Queue) {
+        if let Some(sdf) = &mut self.sdf_renderer {
+            sdf.upload(queue);
+        }
+    }
+
+    fn upload_text_for_node(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
         if let Some(text) = &mut self.text_renderer {
             text.upload(device, queue);
         }

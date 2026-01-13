@@ -16,7 +16,7 @@ pub fn create_primitive_pipelines(
     });
 
     let vertex_buffer_layout = wgpu::VertexBufferLayout {
-        array_stride: (std::mem::size_of::<f32>() * 6) as wgpu::BufferAddress,
+        array_stride: (std::mem::size_of::<f32>() * 7) as wgpu::BufferAddress,
         step_mode: wgpu::VertexStepMode::Vertex,
         attributes: &[
             wgpu::VertexAttribute {
@@ -28,6 +28,12 @@ pub fn create_primitive_pipelines(
                 offset: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
                 shader_location: 1,
                 format: wgpu::VertexFormat::Float32x4,
+            },
+            wgpu::VertexAttribute {
+                offset: (std::mem::size_of::<[f32; 2]>() + std::mem::size_of::<[f32; 4]>())
+                    as wgpu::BufferAddress,
+                shader_location: 2,
+                format: wgpu::VertexFormat::Float32,
             },
         ],
     };
@@ -66,7 +72,13 @@ pub fn create_primitive_pipelines(
             unclipped_depth: false,
             conservative: false,
         },
-        depth_stencil: None,
+        depth_stencil: Some(wgpu::DepthStencilState {
+            format: wgpu::TextureFormat::Depth32Float,
+            depth_write_enabled: true,
+            depth_compare: wgpu::CompareFunction::LessEqual,
+            stencil: wgpu::StencilState::default(),
+            bias: wgpu::DepthBiasState::default(),
+        }),
         multisample: wgpu::MultisampleState {
             count: 1,
             mask: !0,
@@ -104,7 +116,13 @@ pub fn create_primitive_pipelines(
             unclipped_depth: false,
             conservative: false,
         },
-        depth_stencil: None,
+        depth_stencil: Some(wgpu::DepthStencilState {
+            format: wgpu::TextureFormat::Depth32Float,
+            depth_write_enabled: true,
+            depth_compare: wgpu::CompareFunction::LessEqual,
+            stencil: wgpu::StencilState::default(),
+            bias: wgpu::DepthBiasState::default(),
+        }),
         multisample: wgpu::MultisampleState {
             count: 1,
             mask: !0,

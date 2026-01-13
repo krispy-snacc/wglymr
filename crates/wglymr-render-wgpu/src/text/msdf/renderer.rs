@@ -183,6 +183,7 @@ impl MsdfTextRenderer {
         screen_position: [f32; 2],
         font_size_px: f32,
         color: wglymr_color::Color,
+        depth: f32,
     ) {
         let font_id = 0;
         let pixel_size = font_size_px.max(1.0) as u16;
@@ -216,6 +217,7 @@ impl MsdfTextRenderer {
                 cached.uv.min,
                 cached.uv.max,
                 color.to_gpu_linear(),
+                depth,
             );
 
             x += cached.metrics.advance_x;
@@ -237,7 +239,7 @@ impl MsdfTextRenderer {
         pipeline.upload_indices(device, queue, self.quad_builder.indices());
     }
 
-    pub fn render<'a>(&'a mut self, pass: &mut RenderPass<'a>) {
+    pub fn render<'a>(&'a self, pass: &mut RenderPass<'a>) {
         if self.quad_builder.is_empty() {
             return;
         }

@@ -6,6 +6,7 @@ use wglymr_color::Color;
 pub struct Vertex {
     pub position: [f32; 2],
     pub color: [f32; 4],
+    pub depth: f32,
 }
 
 pub struct PrimitiveBatch {
@@ -35,50 +36,58 @@ impl PrimitiveBatch {
         self.rect_ranges.clear();
     }
 
-    pub fn line(&mut self, from: [f32; 2], to: [f32; 2], color: Color) {
+    pub fn line(&mut self, from: [f32; 2], to: [f32; 2], color: Color, depth: f32) {
         let start = self.vertices.len() as u32;
         let color_gpu = color.to_gpu_linear();
 
         self.vertices.push(Vertex {
             position: from,
             color: color_gpu,
+            depth,
         });
         self.vertices.push(Vertex {
             position: to,
             color: color_gpu,
+            depth,
         });
 
         let end = self.vertices.len() as u32;
         self.line_ranges.push(start..end);
     }
 
-    pub fn rect(&mut self, min: [f32; 2], max: [f32; 2], color: Color) {
+    pub fn rect(&mut self, min: [f32; 2], max: [f32; 2], color: Color, depth: f32) {
         let start = self.vertices.len() as u32;
         let color_gpu = color.to_gpu_linear();
 
         self.vertices.push(Vertex {
             position: [min[0], min[1]],
             color: color_gpu,
+            depth,
         });
         self.vertices.push(Vertex {
             position: [max[0], min[1]],
             color: color_gpu,
+            depth,
         });
         self.vertices.push(Vertex {
             position: [max[0], max[1]],
             color: color_gpu,
+            depth,
         });
         self.vertices.push(Vertex {
             position: [min[0], min[1]],
             color: color_gpu,
+            depth,
         });
         self.vertices.push(Vertex {
             position: [max[0], max[1]],
             color: color_gpu,
+            depth,
         });
         self.vertices.push(Vertex {
             position: [min[0], max[1]],
             color: color_gpu,
+            depth,
         });
 
         let end = self.vertices.len() as u32;

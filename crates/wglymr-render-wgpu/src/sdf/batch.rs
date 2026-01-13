@@ -44,6 +44,7 @@ impl SdfBatch {
                 border_width: rect.border_width,
                 fill_color: fill_color_gpu,
                 border_color: border_color_gpu,
+                depth: rect.depth,
             },
             SdfVertex {
                 position: [max[0], min[1]],
@@ -53,6 +54,7 @@ impl SdfBatch {
                 border_width: rect.border_width,
                 fill_color: fill_color_gpu,
                 border_color: border_color_gpu,
+                depth: rect.depth,
             },
             SdfVertex {
                 position: [max[0], max[1]],
@@ -62,6 +64,7 @@ impl SdfBatch {
                 border_width: rect.border_width,
                 fill_color: fill_color_gpu,
                 border_color: border_color_gpu,
+                depth: rect.depth,
             },
             SdfVertex {
                 position: [min[0], min[1]],
@@ -71,6 +74,7 @@ impl SdfBatch {
                 border_width: rect.border_width,
                 fill_color: fill_color_gpu,
                 border_color: border_color_gpu,
+                depth: rect.depth,
             },
             SdfVertex {
                 position: [max[0], max[1]],
@@ -80,6 +84,7 @@ impl SdfBatch {
                 border_width: rect.border_width,
                 fill_color: fill_color_gpu,
                 border_color: border_color_gpu,
+                depth: rect.depth,
             },
             SdfVertex {
                 position: [min[0], max[1]],
@@ -89,6 +94,7 @@ impl SdfBatch {
                 border_width: rect.border_width,
                 fill_color: fill_color_gpu,
                 border_color: border_color_gpu,
+                depth: rect.depth,
             },
         ];
 

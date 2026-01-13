@@ -44,16 +44,16 @@ impl PrimitiveRenderer {
         &mut self.batch
     }
 
-    pub fn draw_line(&mut self, from: [f32; 2], to: [f32; 2], color: wglymr_color::Color) {
-        self.batch.line(from, to, color);
+    pub fn draw_line(&mut self, from: [f32; 2], to: [f32; 2], color: wglymr_color::Color, depth: f32) {
+        self.batch.line(from, to, color, depth);
     }
 
-    pub fn draw_rect(&mut self, min: [f32; 2], max: [f32; 2], color: wglymr_color::Color) {
-        self.batch.rect(min, max, color);
+    pub fn draw_rect(&mut self, min: [f32; 2], max: [f32; 2], color: wglymr_color::Color, depth: f32) {
+        self.batch.rect(min, max, color, depth);
     }
 
-    pub fn draw_grid(&mut self, pan_world: [f32; 2], zoom: f32, viewport: [f32; 2]) {
-        super::draw_grid(&mut self.batch, pan_world, zoom, viewport);
+    pub fn draw_grid(&mut self, pan_world: [f32; 2], zoom: f32, viewport: [f32; 2], depth: f32) {
+        super::draw_grid(&mut self.batch, pan_world, zoom, viewport, depth);
     }
 
     pub fn upload(&self, queue: &Queue) {

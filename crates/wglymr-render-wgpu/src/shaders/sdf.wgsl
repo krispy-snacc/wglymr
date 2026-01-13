@@ -13,6 +13,7 @@ struct VertexInput {
     @location(4) border_width: f32,
     @location(5) fill_color: vec4<f32>,
     @location(6) border_color: vec4<f32>,
+    @location(7) depth: f32,
 }
 
 struct VertexOutput {
@@ -31,7 +32,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
     let clip_x = (in.position.x / viewport.viewport.x) * 2.0 - 1.0;
     let clip_y = 1.0 - (in.position.y / viewport.viewport.y) * 2.0;
-    out.clip_position = vec4<f32>(clip_x, clip_y, 0.0, 1.0);
+    out.clip_position = vec4<f32>(clip_x, clip_y, in.depth, 1.0);
     out.frag_pos = in.position;
     out.rect_min = in.rect_min;
     out.rect_max = in.rect_max;

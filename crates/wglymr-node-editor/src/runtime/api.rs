@@ -352,17 +352,8 @@ impl EditorRuntime {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let primitive_renderer = gpu_state
-            .primitive_renderer
-            .as_mut()
-            .ok_or_else(|| RuntimeError::InvalidState("Renderer not initialized".to_string()))?;
-
-        let sdf_renderer = gpu_state.sdf_renderer.as_mut().ok_or_else(|| {
-            RuntimeError::InvalidState("Sdf renderer not initialized".to_string())
-        })?;
-
-        let msdf_text_renderer = gpu_state.msdf_text_renderer.as_mut().ok_or_else(|| {
-            RuntimeError::InvalidState("MSDF text renderer not initialized".to_string())
+        let draw_backend = gpu_state.draw_backend.as_mut().ok_or_else(|| {
+            RuntimeError::InvalidState("Draw backend not initialized".to_string())
         })?;
 
         let engine_view_id = ViewId::new(view_id.to_string());
@@ -379,24 +370,33 @@ impl EditorRuntime {
             editor_view.backing_height() as f32,
         ];
 
-        primitive_renderer.begin_frame();
-        sdf_renderer.begin_frame();
-        msdf_text_renderer.begin_frame();
+        draw_backend.begin_frame();
+        draw_backend.set_viewport(&gpu.queue, viewport);
+        draw_backend.set_camera(pan, zoom);
 
-        primitive_renderer.set_viewport(&gpu.queue, viewport);
-        sdf_renderer.set_viewport(&gpu.queue, viewport);
-        msdf_text_renderer.set_viewport(&gpu.queue, viewport);
+        let grid_depth =
+            crate::editor::depth::resolve_depth(crate::editor::depth::DepthLayer::Grid, 0.0);
+        draw_backend
+            .primitive_renderer_mut()
+            .draw_grid(pan, zoom, viewport, grid_depth);
 
-        primitive_renderer.draw_grid(pan, zoom, viewport);
+        self.engine.draw_view(&engine_view_id);
 
-        self.engine.draw_view(
-            &engine_view_id,
-            &gpu.device,
-            &gpu.queue,
-            primitive_renderer,
-            Some(sdf_renderer),
-            Some(msdf_text_renderer),
-        );
+        let editor_view = self
+            .engine
+            .get_view(&engine_view_id)
+            .ok_or_else(|| RuntimeError::ViewNotFound(view_id.to_string()))?;
+
+        for draw_item in &editor_view.draw_items {
+            draw_backend.emit(draw_item);
+        }
+
+        draw_backend.flush(&gpu.device, &gpu.queue);
+
+        let depth_view = gpu_state
+            .depth_view
+            .as_ref()
+            .ok_or_else(|| RuntimeError::InvalidState("Depth view not available".to_string()))?;
 
         let mut encoder = gpu
             .device
@@ -420,15 +420,19 @@ impl EditorRuntime {
                         store: wgpu::StoreOp::Store,
                     },
                 })],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: depth_view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
 
-            primitive_renderer.render_lines(&mut render_pass);
-            primitive_renderer.render_rects(&mut render_pass);
-            sdf_renderer.render(&mut render_pass);
-            msdf_text_renderer.render(&mut render_pass);
+            draw_backend.render(&mut render_pass);
         }
 
         gpu.queue.submit(std::iter::once(encoder.finish()));

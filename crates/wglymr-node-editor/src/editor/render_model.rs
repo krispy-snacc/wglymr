@@ -70,6 +70,7 @@ pub struct RenderNode {
     pub input_sockets: Vec<RenderSocket>,
     pub output_sockets: Vec<RenderSocket>,
     pub z_index: i32,
+    pub depth_layer: crate::editor::depth::DepthLayer,
     pub text_runs: Vec<crate::editor::text::GlyphRun>,
 }
 

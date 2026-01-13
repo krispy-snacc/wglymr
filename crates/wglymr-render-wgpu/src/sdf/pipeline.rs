@@ -57,6 +57,14 @@ pub fn create_pipeline(
                 shader_location: 6,
                 format: wgpu::VertexFormat::Float32x4,
             },
+            wgpu::VertexAttribute {
+                offset: (std::mem::size_of::<[f32; 2]>() * 3
+                    + std::mem::size_of::<f32>() * 2
+                    + std::mem::size_of::<[f32; 4]>() * 2)
+                    as wgpu::BufferAddress,
+                shader_location: 7,
+                format: wgpu::VertexFormat::Float32,
+            },
         ],
     };
 
@@ -94,7 +102,13 @@ pub fn create_pipeline(
             unclipped_depth: false,
             conservative: false,
         },
-        depth_stencil: None,
+        depth_stencil: Some(wgpu::DepthStencilState {
+            format: wgpu::TextureFormat::Depth32Float,
+            depth_write_enabled: true,
+            depth_compare: wgpu::CompareFunction::LessEqual,
+            stencil: wgpu::StencilState::default(),
+            bias: wgpu::DepthBiasState::default(),
+        }),
         multisample: wgpu::MultisampleState {
             count: 1,
             mask: !0,

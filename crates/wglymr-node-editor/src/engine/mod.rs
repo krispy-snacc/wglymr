@@ -2,12 +2,10 @@ use std::collections::HashMap;
 
 use crate::document::adapter::DocumentAdapter;
 use crate::editor::culling::{compute_view_bounds, is_edge_visible, is_node_visible};
+use crate::editor::draw::DrawItem;
 use crate::editor::input::{InputDispatcher, KeyModifiers, MouseEvent, NodeDragState};
 use crate::editor::layout::{NodeLayoutConstants, build_render_model};
-use crate::editor::renderer::NodeEditorRenderer;
-use crate::editor::text::GlyphRun;
 use crate::editor::visual_state::ViewVisualState;
-use crate::editor::wgpu_renderer::WgpuNodeEditorRenderer;
 
 #[derive(Debug, Clone)]
 pub struct GlobalInteractionState {
@@ -48,7 +46,7 @@ pub struct EditorView {
     backing_scale: f32,
 
     visual: ViewVisualState,
-    pub text_runs: Vec<GlyphRun>,
+    pub draw_items: Vec<DrawItem>,
 }
 
 impl EditorView {
@@ -62,7 +60,7 @@ impl EditorView {
             backing_height: 600,
             backing_scale: 1.0,
             visual: ViewVisualState::default(),
-            text_runs: Vec::new(),
+            draw_items: Vec::new(),
         }
     }
 
@@ -228,21 +226,13 @@ impl EditorEngine {
         );
     }
 
-    pub fn draw_view(
-        &mut self,
-        view_id: &ViewId,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        primitive_renderer: &mut wglymr_render_wgpu::PrimitiveRenderer,
-        sdf_renderer: Option<&mut wglymr_render_wgpu::SdfRenderer>,
-        text_renderer: Option<&mut dyn crate::editor::renderer::NodeEditorTextRenderer>,
-    ) {
+    pub fn draw_view(&mut self, view_id: &ViewId) {
         let view = match self.views.get_mut(view_id) {
             Some(v) => v,
             None => return,
         };
 
-        view.text_runs.clear();
+        view.draw_items.clear();
 
         let constants = NodeLayoutConstants::default();
         let (mut render_nodes, render_edges) =
@@ -251,57 +241,62 @@ impl EditorEngine {
         for node in &mut render_nodes {
             let mut z = 0;
 
+            let is_dragged = self
+                .global_interaction
+                .node_drag
+                .as_ref()
+                .map(|drag| drag.node_ids.contains(&node.node_id))
+                .unwrap_or(false);
+            let is_active = view.visual().active_node == Some(node.node_id);
+
+            node.depth_layer = if is_dragged {
+                crate::editor::depth::DepthLayer::NodesDragged
+            } else if is_active {
+                crate::editor::depth::DepthLayer::NodesActive
+            } else {
+                crate::editor::depth::DepthLayer::NodesInactive
+            };
+
             if view.visual().selected_nodes.contains(&node.node_id) {
                 z += 100;
             }
 
-            if view.visual().active_node == Some(node.node_id) {
+            if is_active {
                 z += 200;
             }
 
-            if let Some(drag) = &self.global_interaction.node_drag {
-                if drag.node_ids.contains(&node.node_id) {
-                    z += 1000;
-                }
+            if is_dragged {
+                z += 1000;
             }
 
             node.z_index = z;
 
-            let text_run = crate::editor::text::layout_node_title(node, view, z);
+            let text_run = crate::editor::text::layout_node_title(node, z);
             node.text_runs.push(text_run);
         }
 
-        render_nodes.sort_by_key(|n| n.z_index);
-
         let view_bounds = compute_view_bounds(view);
-
-        let mut renderer = WgpuNodeEditorRenderer::new(primitive_renderer);
-
-        if let Some(sdf) = sdf_renderer {
-            sdf.begin_frame();
-            renderer = renderer.with_sdf_renderer(sdf);
-        }
-
-        if let Some(text) = text_renderer {
-            text.begin_frame();
-            renderer = renderer.with_text_renderer(text);
-        }
 
         for edge in &render_edges {
             if is_edge_visible(edge, &view_bounds) {
-                renderer.draw_edge(edge, view, &self.global_interaction, &render_nodes);
+                let edge_items = crate::editor::draw::emit_edge_draw_items(
+                    edge,
+                    &render_nodes,
+                    &self.global_interaction,
+                );
+                view.draw_items.extend(edge_items);
             }
         }
-
-        renderer.upload_primitives(queue);
 
         for node in &render_nodes {
             if is_node_visible(node, &view_bounds) {
-                renderer.draw_node(node, view, &self.global_interaction);
-                renderer.upload_primitives_for_node(queue);
-                renderer.upload_sdf_for_node(queue);
-                renderer.upload_text_for_node(device, queue);
+                let node_items =
+                    crate::editor::draw::emit_node_draw_items(node, view, &self.global_interaction);
+                view.draw_items.extend(node_items);
             }
         }
+
+        view.draw_items
+            .sort_by_key(|item| (item.layer as i32 * 10_000) + item.z);
     }
 }

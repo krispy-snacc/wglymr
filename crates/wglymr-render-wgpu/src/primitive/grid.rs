@@ -9,6 +9,7 @@ pub fn draw_grid(
     pan_world: [f32; 2], // world-space center
     zoom: f32,
     viewport: [f32; 2],
+    depth: f32,
 ) {
     let spacing_px = GRID_WORLD_SPACING * zoom;
     if spacing_px < 2.0 {
@@ -28,13 +29,13 @@ pub fn draw_grid(
 
     let mut x = offset_x;
     while x <= viewport[0] {
-        batch.line([x, 0.0], [x, viewport[1]], GRID_COLOR);
+        batch.line([x, 0.0], [x, viewport[1]], GRID_COLOR, depth);
         x += spacing_px;
     }
 
     let mut y = offset_y;
     while y <= viewport[1] {
-        batch.line([0.0, y], [viewport[0], y], GRID_COLOR);
+        batch.line([0.0, y], [viewport[0], y], GRID_COLOR, depth);
         y += spacing_px;
     }
     // batch.line([0.0, 0.0], [viewport[0], viewport[1]], [1.0, 0.0, 0.0, 1.0]);

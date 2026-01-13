@@ -7,6 +7,7 @@ pub struct RoundedRect {
     pub border_width: f32,
     pub fill_color: Color,
     pub border_color: Color,
+    pub depth: f32,
 }
 
 impl RoundedRect {
@@ -18,6 +19,7 @@ impl RoundedRect {
             border_width: 0.0,
             fill_color: Color::WHITE,
             border_color: Color::BLACK,
+            depth: 0.5, // Default fallback, should be overridden
         }
     }
 
@@ -36,6 +38,11 @@ impl RoundedRect {
         self.fill_color = color;
         self
     }
+
+    pub fn with_depth(mut self, depth: f32) -> Self {
+        self.depth = depth;
+        self
+    }
 }
 
 #[repr(C)]
@@ -48,4 +55,5 @@ pub struct SdfVertex {
     pub border_width: f32,
     pub fill_color: [f32; 4],
     pub border_color: [f32; 4],
+    pub depth: f32,
 }

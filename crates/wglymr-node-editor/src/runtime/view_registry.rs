@@ -1,17 +1,17 @@
 use super::errors::RuntimeError;
 use super::gpu::SurfaceHandle;
+use crate::editor::draw::WgpuDrawBackend;
 use crate::engine::ViewId;
 use std::collections::HashMap;
-use wglymr_render_wgpu::{MsdfTextRenderer, PrimitiveRenderer, SdfRenderer};
 
 pub struct GpuViewState {
     pub visible: bool,
     pub attached: bool,
     pub surface: Option<SurfaceHandle>,
     pub config: Option<wgpu::SurfaceConfiguration>,
-    pub primitive_renderer: Option<PrimitiveRenderer>,
-    pub sdf_renderer: Option<SdfRenderer>,
-    pub msdf_text_renderer: Option<MsdfTextRenderer>,
+    pub draw_backend: Option<WgpuDrawBackend>,
+    pub depth_texture: Option<wgpu::Texture>,
+    pub depth_view: Option<wgpu::TextureView>,
 }
 
 impl GpuViewState {
@@ -21,9 +21,9 @@ impl GpuViewState {
             attached: false,
             surface: None,
             config: None,
-            primitive_renderer: None,
-            sdf_renderer: None,
-            msdf_text_renderer: None,
+            draw_backend: None,
+            depth_texture: None,
+            depth_view: None,
         }
     }
 }
@@ -107,15 +107,35 @@ impl GpuViewRegistry {
 
         wgpu_surface.configure(&gpu.device, &config);
 
-        let primitive_renderer = PrimitiveRenderer::new(&gpu.device, format);
-        let sdf_renderer = SdfRenderer::new(&gpu.device, format);
-        let msdf_text_renderer = MsdfTextRenderer::new(&gpu.device, format);
+        let primitive_renderer = wglymr_render_wgpu::PrimitiveRenderer::new(&gpu.device, format);
+        let sdf_renderer = wglymr_render_wgpu::SdfRenderer::new(&gpu.device, format);
+        let msdf_text_renderer = wglymr_render_wgpu::MsdfTextRenderer::new(&gpu.device, format);
+
+        let draw_backend =
+            WgpuDrawBackend::new(primitive_renderer, sdf_renderer, msdf_text_renderer);
+
+        let depth_texture = gpu.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Depth Texture"),
+            size: wgpu::Extent3d {
+                width: backing_width,
+                height: backing_height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Depth32Float,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
+        });
+
+        let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         state.surface = Some(surface);
         state.config = Some(config);
-        state.primitive_renderer = Some(primitive_renderer);
-        state.sdf_renderer = Some(sdf_renderer);
-        state.msdf_text_renderer = Some(msdf_text_renderer);
+        state.draw_backend = Some(draw_backend);
+        state.depth_texture = Some(depth_texture);
+        state.depth_view = Some(depth_view);
         state.attached = true;
 
         Ok(())
@@ -130,9 +150,9 @@ impl GpuViewRegistry {
 
         state.surface = None;
         state.config = None;
-        state.primitive_renderer = None;
-        state.sdf_renderer = None;
-        state.msdf_text_renderer = None;
+        state.draw_backend = None;
+        state.depth_texture = None;
+        state.depth_view = None;
         state.attached = false;
         Ok(())
     }
@@ -159,6 +179,25 @@ impl GpuViewRegistry {
                 config.width = backing_width;
                 config.height = backing_height;
                 wgpu_surface.configure(&gpu.device, config);
+
+                let depth_texture = gpu.device.create_texture(&wgpu::TextureDescriptor {
+                    label: Some("Depth Texture"),
+                    size: wgpu::Extent3d {
+                        width: backing_width,
+                        height: backing_height,
+                        depth_or_array_layers: 1,
+                    },
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
+                    format: wgpu::TextureFormat::Depth32Float,
+                    usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                    view_formats: &[],
+                });
+
+                let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+                state.depth_texture = Some(depth_texture);
+                state.depth_view = Some(depth_view);
             }
         }
 
@@ -187,6 +226,25 @@ impl GpuViewRegistry {
                 config.width = backing_width;
                 config.height = backing_height;
                 wgpu_surface.configure(&gpu.device, config);
+
+                let depth_texture = gpu.device.create_texture(&wgpu::TextureDescriptor {
+                    label: Some("Depth Texture"),
+                    size: wgpu::Extent3d {
+                        width: backing_width,
+                        height: backing_height,
+                        depth_or_array_layers: 1,
+                    },
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
+                    format: wgpu::TextureFormat::Depth32Float,
+                    usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                    view_formats: &[],
+                });
+
+                let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+                state.depth_texture = Some(depth_texture);
+                state.depth_view = Some(depth_view);
             }
         }
 

@@ -1,11 +1,11 @@
 #[repr(i32)]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum DrawLayer {
-    Grid = 0,
+    Background = 0,
     Edges = 10,
     NodeBody = 20,
     NodeHeader = 30,
     NodeSockets = 40,
     NodeText = 50,
-    Overlays = 100,
+    Overlay = 100,
 }

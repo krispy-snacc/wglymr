@@ -1,12 +1,13 @@
+use crate::editor::hit::hit_test;
 use crate::editor::input::event::{MouseButton, MouseEvent, MouseEventKind};
-use crate::editor::input::hit_test::{HitResult, HitTestContext, NodeRegion, hit_test};
 use crate::editor::input::operator::{EditorOperator, OperatorContext, OperatorResult};
+use crate::editor::interaction::{InteractionTarget, map_draw_item_to_target};
 
 const DRAG_THRESHOLD_WORLD: f32 = 3.0;
 
 #[derive(Clone)]
 struct ClickCandidate {
-    hit: HitResult,
+    target: InteractionTarget,
     start_mouse_world: [f32; 2],
     was_selected: bool,
 }
@@ -23,6 +24,7 @@ impl NodeSelectOperator {
 
 impl EditorOperator for NodeSelectOperator {
     fn on_enter(&mut self, _ctx: &mut OperatorContext) {
+        crate::runtime::logging::log("[Operator] NodeSelectOperator::on_enter");
         self.click = None;
     }
 
@@ -66,57 +68,101 @@ impl EditorOperator for NodeSelectOperator {
     }
 
     fn on_exit(&mut self, _ctx: &mut OperatorContext) {
+        crate::runtime::logging::log("[Operator] NodeSelectOperator::on_exit");
         self.click = None;
     }
 }
 
 impl NodeSelectOperator {
     fn update_hover(&self, ctx: &mut OperatorContext) {
-        let hit = hit_test(
-            ctx.mouse_world,
-            HitTestContext::Hover,
-            ctx.render_nodes,
-            ctx.render_edges,
-            ctx.zoom,
-        );
+        let hit_result = hit_test(ctx.mouse_world, ctx.draw_items);
+        
+        crate::runtime::logging::debug(&format!(
+            "[Hover] mouse_world: [{:.2}, {:.2}], draw_items: {}, hit: {}",
+            ctx.mouse_world[0], ctx.mouse_world[1],
+            ctx.draw_items.len(),
+            if hit_result.is_some() { "YES" } else { "NO" }
+        ));
+        
+        let target = hit_result
+            .and_then(|h| {
+                crate::runtime::logging::debug(&format!(
+                    "[Hover] hit_result: item_index={}, hit_layer={:?}, depth={:.4}",
+                    h.item_index, h.hit_layer, h.depth
+                ));
+                ctx.draw_items.get(h.item_index)
+            })
+            .map(|item| {
+                let t = map_draw_item_to_target(item);
+                crate::runtime::logging::debug(&format!(
+                    "[Hover] mapped to target: {:?}",
+                    t
+                ));
+                t
+            })
+            .unwrap_or(InteractionTarget::None);
 
         ctx.view_visual.hovered_node = None;
         ctx.view_visual.hovered_socket = None;
 
-        match hit {
-            HitResult::Node { node_id, .. } => {
+        match target {
+            InteractionTarget::Node { node_id } | InteractionTarget::NodeHeader { node_id } => {
                 ctx.view_visual.hovered_node = Some(node_id);
             }
-            HitResult::Socket { socket_id, .. } => {
+            InteractionTarget::Socket { socket_id, .. } => {
                 ctx.view_visual.hovered_socket = Some(socket_id);
             }
-            HitResult::Edge { .. } | HitResult::Background => {}
+            InteractionTarget::Edge { .. }
+            | InteractionTarget::None
+            | InteractionTarget::Overlay { .. } => {}
         }
     }
 
     fn handle_left_mouse_down(&mut self, ctx: &mut OperatorContext) -> OperatorResult {
-        let hit = hit_test(
-            ctx.mouse_world,
-            HitTestContext::Click,
-            ctx.render_nodes,
-            ctx.render_edges,
-            ctx.zoom,
-        );
+        crate::runtime::logging::log(&format!(
+            "[MouseDown] at world [{:.2}, {:.2}], draw_items: {}",
+            ctx.mouse_world[0], ctx.mouse_world[1], ctx.draw_items.len()
+        ));
+        
+        let hit_result = hit_test(ctx.mouse_world, ctx.draw_items);
+        let target = hit_result
+            .and_then(|h| {
+                crate::runtime::logging::log(&format!(
+                    "[MouseDown] hit: item_index={}, hit_layer={:?}",
+                    h.item_index, h.hit_layer
+                ));
+                ctx.draw_items.get(h.item_index)
+            })
+            .map(|item| {
+                let t = map_draw_item_to_target(item);
+                crate::runtime::logging::log(&format!(
+                    "[MouseDown] target: {:?}",
+                    t
+                ));
+                t
+            })
+            .unwrap_or(InteractionTarget::None);
 
-        if let HitResult::Socket { socket_id, .. } = hit {
+        if let InteractionTarget::Socket { socket_id, .. } = target {
+            crate::runtime::logging::log(&format!(
+                "[MouseDown] Starting link drag from socket {:?}",
+                socket_id
+            ));
             return OperatorResult::StartLinkDrag {
                 from_socket: socket_id,
             };
         }
 
-        let was_selected = if let HitResult::Node { node_id, .. } = &hit {
+        let was_selected = if let InteractionTarget::Node { node_id }
+        | InteractionTarget::NodeHeader { node_id } = &target
+        {
             ctx.view_visual.selected_nodes.contains(node_id)
         } else {
             false
         };
 
         self.click = Some(ClickCandidate {
-            hit: hit.clone(),
+            target: target.clone(),
             start_mouse_world: ctx.mouse_world,
             was_selected,
         });
@@ -134,20 +180,21 @@ impl NodeSelectOperator {
         let distance = (dx * dx + dy * dy).sqrt();
 
         if distance > DRAG_THRESHOLD_WORLD {
-            if let HitResult::Node { node_id, region } = &click.hit {
-                if *region == NodeRegion::Header {
-                    let node_ids = if click.was_selected {
-                        ctx.view_visual.selected_nodes.clone()
-                    } else {
-                        vec![*node_id]
-                    };
+            if let InteractionTarget::NodeHeader { node_id } = &click.target {
+                crate::runtime::logging::log(&format!(
+                    "[Drag] Starting node drag: distance={:.2}, node_id={:?}, was_selected={}",
+                    distance, node_id, click.was_selected
+                ));
+                
+                let node_ids = if click.was_selected {
+                    ctx.view_visual.selected_nodes.clone()
+                } else {
+                    vec![*node_id]
+                };
 
-                    self.click = None;
-                    return OperatorResult::StartDragNodes { node_ids };
-                }
+                self.click = None;
+                return OperatorResult::StartDragNodes { node_ids };
             }
-
-            self.click = None;
         }
 
         OperatorResult::Continue
@@ -174,21 +221,22 @@ impl NodeSelectOperator {
     }
 
     fn apply_selection(&self, ctx: &mut OperatorContext, click: &ClickCandidate) {
-        match &click.hit {
-            HitResult::Node { node_id, .. } => {
+        match &click.target {
+            InteractionTarget::Node { node_id } | InteractionTarget::NodeHeader { node_id } => {
                 if ctx.modifiers.shift {
                     ctx.view_visual.toggle_node_selection(*node_id);
                 } else {
                     ctx.view_visual.select_single_node(*node_id);
                 }
             }
-            HitResult::Background => {
+            InteractionTarget::None => {
                 if !ctx.modifiers.shift {
                     ctx.view_visual.clear_selection();
                 }
             }
-            HitResult::Edge { .. } => {}
-            HitResult::Socket { .. } => {}
+            InteractionTarget::Edge { .. }
+            | InteractionTarget::Socket { .. }
+            | InteractionTarget::Overlay { .. } => {}
         }
     }
 }

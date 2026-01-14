@@ -1,6 +1,6 @@
 use crate::document::commands::{NodeId, SocketId};
+use crate::editor::draw::DrawItem;
 use crate::editor::input::event::{KeyModifiers, MouseEvent};
-use crate::editor::render_model::{RenderEdge, RenderNode};
 use crate::editor::visual_state::ViewVisualState;
 use crate::engine::GlobalInteractionState;
 
@@ -17,8 +17,7 @@ pub enum OperatorResult {
 pub struct OperatorContext<'a> {
     pub view_visual: &'a mut ViewVisualState,
     pub global_interaction: &'a mut GlobalInteractionState,
-    pub render_nodes: &'a [RenderNode],
-    pub render_edges: &'a [RenderEdge],
+    pub draw_items: &'a [DrawItem],
     pub zoom: f32,
     pub modifiers: KeyModifiers,
     pub mouse_world: [f32; 2],
@@ -29,8 +28,7 @@ impl<'a> OperatorContext<'a> {
     pub fn new(
         view_visual: &'a mut ViewVisualState,
         global_interaction: &'a mut GlobalInteractionState,
-        render_nodes: &'a [RenderNode],
-        render_edges: &'a [RenderEdge],
+        draw_items: &'a [DrawItem],
         zoom: f32,
         modifiers: KeyModifiers,
         mouse_world: [f32; 2],
@@ -39,8 +37,7 @@ impl<'a> OperatorContext<'a> {
         Self {
             view_visual,
             global_interaction,
-            render_nodes,
-            render_edges,
+            draw_items,
             zoom,
             modifiers,
             mouse_world,

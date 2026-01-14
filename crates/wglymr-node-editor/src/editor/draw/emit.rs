@@ -1,8 +1,9 @@
 use crate::document::commands::NodeId;
-use crate::editor::depth::{resolve_depth, DepthLayer, Z_BODY, Z_HEADER, Z_SOCKET, Z_TEXT};
+use crate::editor::depth::{DepthLayer, Z_BODY, Z_HEADER, Z_SOCKET, Z_TEXT, resolve_depth};
 use crate::editor::draw::{
-    CircleDraw, DrawItem, DrawKind, DrawLayer, GlyphDraw, LineDraw, RoundedRectDraw,
+    CircleDraw, DrawItem, DrawKind, DrawLayer, EntityMetadata, GlyphDraw, LineDraw, RoundedRectDraw,
 };
+use crate::editor::hit::HitLayer;
 use crate::editor::render_model::{RenderEdge, RenderNode};
 use crate::engine::{EditorView, GlobalInteractionState};
 use wglymr_color::Color;
@@ -67,17 +68,21 @@ pub fn emit_node_draw_items(
         node.body_bounds.max[1] + offset[1],
     ];
 
-    items.push(DrawItem::new(
-        DrawLayer::NodeBody,
-        z,
-        resolve_depth(node.depth_layer, Z_BODY),
-        DrawKind::RoundedRect(RoundedRectDraw {
-            position: body_min,
-            size: [body_max[0] - body_min[0], body_max[1] - body_min[1]],
-            corner_radius: node.corner_radius,
-            color: body_color,
-        }),
-    ));
+    items.push(
+        DrawItem::new(
+            DrawLayer::NodeBody,
+            HitLayer::NodeBody,
+            z,
+            resolve_depth(node.depth_layer, Z_BODY),
+            DrawKind::RoundedRect(RoundedRectDraw {
+                position: body_min,
+                size: [body_max[0] - body_min[0], body_max[1] - body_min[1]],
+                corner_radius: node.corner_radius,
+                color: body_color,
+            }),
+        )
+        .with_entity(EntityMetadata::Node(node.node_id)),
+    );
 
     let header_min = [
         node.header_bounds.min[0] + offset[0],
@@ -88,33 +93,41 @@ pub fn emit_node_draw_items(
         node.header_bounds.max[1] + offset[1],
     ];
 
-    items.push(DrawItem::new(
-        DrawLayer::NodeHeader,
-        z,
-        resolve_depth(node.depth_layer, Z_HEADER),
-        DrawKind::RoundedRect(RoundedRectDraw {
-            position: header_min,
-            size: [header_max[0] - header_min[0], header_max[1] - header_min[1]],
-            corner_radius: node.corner_radius,
-            color: node.colors.header,
-        }),
-    ));
+    items.push(
+        DrawItem::new(
+            DrawLayer::NodeHeader,
+            HitLayer::NodeHeader,
+            z,
+            resolve_depth(node.depth_layer, Z_HEADER),
+            DrawKind::RoundedRect(RoundedRectDraw {
+                position: header_min,
+                size: [header_max[0] - header_min[0], header_max[1] - header_min[1]],
+                corner_radius: node.corner_radius,
+                color: node.colors.header,
+            }),
+        )
+        .with_entity(EntityMetadata::Node(node.node_id)),
+    );
 
     for text_run in &node.text_runs {
-        items.push(DrawItem::new(
-            DrawLayer::NodeText,
-            z,
-            resolve_depth(node.depth_layer, Z_TEXT),
-            DrawKind::Glyph(GlyphDraw {
-                text: text_run.text.clone(),
-                world_position: [
-                    text_run.world_position[0] + offset[0],
-                    text_run.world_position[1] + offset[1],
-                ],
-                font_size: text_run.font_size,
-                color: text_run.color,
-            }),
-        ));
+        items.push(
+            DrawItem::new(
+                DrawLayer::NodeText,
+                HitLayer::NoHit,
+                z,
+                resolve_depth(node.depth_layer, Z_TEXT),
+                DrawKind::Glyph(GlyphDraw {
+                    text: text_run.text.clone(),
+                    world_position: [
+                        text_run.world_position[0] + offset[0],
+                        text_run.world_position[1] + offset[1],
+                    ],
+                    font_size: text_run.font_size,
+                    color: text_run.color,
+                }),
+            )
+            .with_entity(EntityMetadata::Node(node.node_id)),
+        );
     }
 
     for socket in &node.input_sockets {
@@ -133,17 +146,24 @@ pub fn emit_node_draw_items(
             radius *= 1.15;
         }
 
-        items.push(DrawItem::new(
-            DrawLayer::NodeSockets,
-            z,
-            resolve_depth(node.depth_layer, Z_SOCKET),
-            DrawKind::Circle(CircleDraw {
-                center,
-                radius,
-                color,
-                filled: true,
+        items.push(
+            DrawItem::new(
+                DrawLayer::NodeSockets,
+                HitLayer::NodeSockets,
+                z,
+                resolve_depth(node.depth_layer, Z_SOCKET),
+                DrawKind::Circle(CircleDraw {
+                    center,
+                    radius,
+                    color,
+                    filled: true,
+                }),
+            )
+            .with_entity(EntityMetadata::Socket {
+                node_id: node.node_id,
+                socket_id: socket.socket_id,
             }),
-        ));
+        );
     }
 
     for socket in &node.output_sockets {
@@ -162,17 +182,24 @@ pub fn emit_node_draw_items(
             radius *= 1.15;
         }
 
-        items.push(DrawItem::new(
-            DrawLayer::NodeSockets,
-            z,
-            resolve_depth(node.depth_layer, Z_SOCKET),
-            DrawKind::Circle(CircleDraw {
-                center,
-                radius,
-                color,
-                filled: true,
+        items.push(
+            DrawItem::new(
+                DrawLayer::NodeSockets,
+                HitLayer::NodeSockets,
+                z,
+                resolve_depth(node.depth_layer, Z_SOCKET),
+                DrawKind::Circle(CircleDraw {
+                    center,
+                    radius,
+                    color,
+                    filled: true,
+                }),
+            )
+            .with_entity(EntityMetadata::Socket {
+                node_id: node.node_id,
+                socket_id: socket.socket_id,
             }),
-        ));
+        );
     }
 
     items
@@ -191,17 +218,21 @@ pub fn emit_edge_draw_items(
     let from = [edge.from[0] + from_offset[0], edge.from[1] + from_offset[1]];
     let to = [edge.to[0] + to_offset[0], edge.to[1] + to_offset[1]];
 
-    items.push(DrawItem::new(
-        DrawLayer::Edges,
-        0,
-        resolve_depth(DepthLayer::Edges, 0.0),
-        DrawKind::Line(LineDraw {
-            start: from,
-            end: to,
-            color: Color::gray(0.8),
-            thickness: 2.0,
-        }),
-    ));
+    items.push(
+        DrawItem::new(
+            DrawLayer::Edges,
+            HitLayer::Edges,
+            0,
+            resolve_depth(DepthLayer::Edges, 0.0),
+            DrawKind::Line(LineDraw {
+                start: from,
+                end: to,
+                color: Color::gray(0.8),
+                thickness: 2.0,
+            }),
+        )
+        .with_entity(EntityMetadata::Edge(edge.edge_id)),
+    );
 
     items
 }

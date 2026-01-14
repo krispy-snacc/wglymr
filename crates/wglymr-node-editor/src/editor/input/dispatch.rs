@@ -1,3 +1,4 @@
+use crate::editor::draw::DrawItem;
 use crate::editor::input::event::{KeyModifiers, MouseEvent};
 use crate::editor::input::operator::{OperatorContext, OperatorResult};
 use crate::editor::input::operator_stack::OperatorStack;
@@ -5,7 +6,6 @@ use crate::editor::input::operators::box_select::BoxSelectOperator;
 use crate::editor::input::operators::link_drag::LinkDragOperator;
 use crate::editor::input::operators::node_drag::NodeDragOperator;
 use crate::editor::input::operators::node_select::NodeSelectOperator;
-use crate::editor::render_model::{RenderEdge, RenderNode};
 use crate::engine::{EditorView, GlobalInteractionState};
 
 pub struct InputDispatcher {
@@ -52,8 +52,7 @@ impl InputDispatcher {
         &mut self,
         event: MouseEvent,
         view: &mut EditorView,
-        render_nodes: &[RenderNode],
-        render_edges: &[RenderEdge],
+        draw_items: &[DrawItem],
         global_interaction: &mut GlobalInteractionState,
     ) {
         let norm_screen_pos = self.mouse_coords_normalized(event.screen_pos, view);
@@ -67,8 +66,7 @@ impl InputDispatcher {
         let mut ctx = OperatorContext::new(
             view_visual,
             global_interaction,
-            render_nodes,
-            render_edges,
+            draw_items,
             zoom,
             self.modifiers,
             mouse_world,

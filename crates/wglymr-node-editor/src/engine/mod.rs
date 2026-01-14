@@ -213,15 +213,11 @@ impl EditorEngine {
             None => return,
         };
 
-        let constants = NodeLayoutConstants::default();
-        let (render_nodes, render_edges) = build_render_model(self.document.as_ref(), &constants);
-
         self.input_handler.set_modifiers(modifiers);
         self.input_handler.handle_mouse_event(
             event,
             view,
-            &render_nodes,
-            &render_edges,
+            &view.draw_items.clone(),
             &mut self.global_interaction,
         );
     }
@@ -297,6 +293,6 @@ impl EditorEngine {
         }
 
         view.draw_items
-            .sort_by_key(|item| (item.layer as i32 * 10_000) + item.z);
+            .sort_by_key(|item| (item.draw_layer as i32 * 10_000) + item.z);
     }
 }

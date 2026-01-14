@@ -17,12 +17,7 @@ impl NodeDragOperator {
 
 impl EditorOperator for NodeDragOperator {
     fn on_enter(&mut self, ctx: &mut OperatorContext) {
-        let mut start_positions = HashMap::new();
-        for &id in &self.node_ids {
-            if let Some(node) = ctx.render_nodes.iter().find(|n| n.node_id == id) {
-                start_positions.insert(id, [node.bounds.min[0], node.bounds.min[1]]);
-            }
-        }
+        let start_positions = HashMap::new();
 
         ctx.global_interaction.node_drag = Some(NodeDragState {
             node_ids: self.node_ids.clone(),

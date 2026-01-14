@@ -1,7 +1,9 @@
 pub mod culling;
 pub mod depth;
 pub mod draw;
+pub mod hit;
 pub mod input;
+pub mod interaction;
 pub mod layout;
 pub mod render_model;
 pub mod text;

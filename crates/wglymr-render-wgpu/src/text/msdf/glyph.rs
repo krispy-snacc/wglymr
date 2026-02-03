@@ -43,4 +43,5 @@ pub struct CachedGlyph {
     pub atlas_y: u32,
     pub atlas_width: u32,
     pub atlas_height: u32,
+    pub atlas_height_f32: f32,
 }

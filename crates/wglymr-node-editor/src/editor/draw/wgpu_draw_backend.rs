@@ -143,7 +143,7 @@ impl WgpuDrawBackend {
             }
             DrawKind::Glyph(glyph) => {
                 let screen_pos = self.world_to_screen(glyph.world_position);
-                let screen_font_size = self.world_to_screen_size(glyph.font_size).max(1.0);
+                let screen_font_size = self.world_to_screen_size(glyph.font_size);
                 self.draw_commands.push(DrawCommand::Text {
                     text: glyph.text.clone(),
                     pos: screen_pos,

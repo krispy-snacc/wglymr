@@ -12,12 +12,14 @@ struct VertexInput {
     @location(1) uv: vec2<f32>,
     @location(2) color: vec4<f32>,
     @location(3) depth: f32,
+    @location(4) pixel_range: f32,
 }
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) uv: vec2<f32>,
     @location(1) color: vec4<f32>,
+    @location(2) pixel_range: f32,
 }
 
 @vertex
@@ -28,6 +30,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
     out.clip_position = vec4<f32>(clip_x, clip_y, in.depth, 1.0);
     out.uv = in.uv;
     out.color = in.color;
+    out.pixel_range = in.pixel_range;
     return out;
 }
 
@@ -37,10 +40,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     
     let median_dist = median3(sample.r, sample.g, sample.b);
     
-    let dist_px = 4.0 * (median_dist - 0.5);
+    let screen_px_dist = in.pixel_range * (median_dist - 0.5);
     
-    let w = fwidth(dist_px);
-    let alpha = smoothstep(-w, w, dist_px);
+    let fw = fwidthFine(screen_px_dist);
+    let alpha = smoothstep(-fw, fw, screen_px_dist);
     
     return vec4(in.color.rgb, in.color.a * alpha);
 }

@@ -9,6 +9,7 @@ pub struct MsdfVertex {
     pub uv: [f32; 2],
     pub color: [f32; 4],
     pub depth: f32,
+    pub pixel_range: f32,
 }
 
 impl MsdfVertex {
@@ -40,6 +41,15 @@ impl MsdfVertex {
                     shader_location: 3,
                     format: wgpu::VertexFormat::Float32,
                 },
+                wgpu::VertexAttribute {
+                    offset: (std::mem::size_of::<[f32; 2]>()
+                        + std::mem::size_of::<[f32; 2]>()
+                        + std::mem::size_of::<[f32; 4]>()
+                        + std::mem::size_of::<f32>())
+                        as wgpu::BufferAddress,
+                    shader_location: 4,
+                    format: wgpu::VertexFormat::Float32,
+                },
             ],
         }
     }
@@ -67,6 +77,7 @@ impl QuadBuilder {
         uv_max: [f32; 2],
         color: [f32; 4],
         depth: f32,
+        pixel_range: f32,
     ) {
         let base_index = self.vertices.len() as u16;
 
@@ -81,24 +92,28 @@ impl QuadBuilder {
                 uv: [uv_min[0], uv_min[1]],
                 color,
                 depth,
+                pixel_range,
             },
             MsdfVertex {
                 position: [x1, y0],
                 uv: [uv_max[0], uv_min[1]],
                 color,
                 depth,
+                pixel_range,
             },
             MsdfVertex {
                 position: [x1, y1],
                 uv: [uv_max[0], uv_max[1]],
                 color,
                 depth,
+                pixel_range,
             },
             MsdfVertex {
                 position: [x0, y1],
                 uv: [uv_min[0], uv_max[1]],
                 color,
                 depth,
+                pixel_range,
             },
         ]);
 

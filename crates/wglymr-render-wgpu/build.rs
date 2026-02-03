@@ -29,9 +29,13 @@ fn main() {
             "-json",
             &metrics,
             "-size",
-            "256",
+            "1024",
+            "-minsize",
+            "48",
             "-pxrange",
-            "8",
+            "16",
+            "-yorigin",
+            "top",
         ])
         .status();
 

@@ -8,7 +8,7 @@ pub struct MsdfAtlas {
     texture_data: Vec<u8>,
     glyph_map: HashMap<u32, AtlasGlyph>,
     distance_range: f32,
-    _font_size: f32,
+    em_size: f32,
 }
 
 impl MsdfAtlas {
@@ -32,7 +32,7 @@ impl MsdfAtlas {
             texture_data,
             glyph_map,
             distance_range: metrics.metadata.distance_range,
-            _font_size: metrics.metadata.size,
+            em_size: metrics.metadata.size,
         }
     }
 
@@ -46,35 +46,39 @@ impl MsdfAtlas {
         let scale = key.pixel_size as f32;
 
         let width = (plane_bounds.right - plane_bounds.left) * scale;
-        let height = (plane_bounds.top - plane_bounds.bottom) * scale;
+        let height = (plane_bounds.bottom - plane_bounds.top) * scale;
 
         let uv = GlyphUv {
             min: [
                 atlas_bounds.left / self.width as f32,
-                1.0 - (atlas_bounds.top / self.height as f32),
+                atlas_bounds.top / self.height as f32,
             ],
             max: [
                 atlas_bounds.right / self.width as f32,
-                1.0 - (atlas_bounds.bottom / self.height as f32),
+                atlas_bounds.bottom / self.height as f32,
             ],
         };
 
         let metrics = GlyphMetrics {
             advance_x: glyph.advance * scale,
             bearing_x: plane_bounds.left * scale,
-            bearing_y: (plane_bounds.top - 0.8) * scale,
+            bearing_y: -plane_bounds.top * scale,
             width,
             height,
         };
+
+        let atlas_width_px = atlas_bounds.right - atlas_bounds.left;
+        let atlas_height_px = atlas_bounds.bottom - atlas_bounds.top;
 
         Some(CachedGlyph {
             key,
             uv,
             metrics,
             atlas_x: atlas_bounds.left as u32,
-            atlas_y: atlas_bounds.bottom as u32,
-            atlas_width: (atlas_bounds.right - atlas_bounds.left) as u32,
-            atlas_height: (atlas_bounds.top - atlas_bounds.bottom) as u32,
+            atlas_y: atlas_bounds.top as u32,
+            atlas_width: atlas_width_px as u32,
+            atlas_height: atlas_height_px as u32,
+            atlas_height_f32: atlas_height_px,
         })
     }
 
@@ -92,6 +96,10 @@ impl MsdfAtlas {
 
     pub fn distance_range(&self) -> f32 {
         self.distance_range
+    }
+
+    pub fn em_size(&self) -> f32 {
+        self.em_size
     }
 }
 

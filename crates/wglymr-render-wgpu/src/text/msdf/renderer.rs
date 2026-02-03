@@ -191,6 +191,10 @@ impl MsdfTextRenderer {
         let mut x = screen_position[0];
         let y = screen_position[1];
 
+        let distance_range = self.atlas.distance_range();
+        let em_size = self.atlas.em_size();
+        let pixel_range = distance_range * (font_size_px / em_size);
+
         for ch in text.chars() {
             let glyph_id = ch as u16;
             let key = GlyphKey::new(font_id, glyph_id, pixel_size);
@@ -216,8 +220,9 @@ impl MsdfTextRenderer {
                 size,
                 cached.uv.min,
                 cached.uv.max,
-                color.to_gpu_linear(),
+                color.to_gpu_srgb(),
                 depth,
+                pixel_range,
             );
 
             x += cached.metrics.advance_x;

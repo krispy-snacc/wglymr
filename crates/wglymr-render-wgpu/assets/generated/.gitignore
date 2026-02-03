@@ -1,4 +1,0 @@
-# Generated MSDF assets - not committed to source control
-# These are generated at build time via build.rs
-*.png
-*.json

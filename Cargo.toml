@@ -1,11 +1,22 @@
 [workspace]
 resolver = "2"
+
 members = [
-    "crates/wglymr-color",
-    "crates/wglymr-graph",
-    "crates/wglymr-node-editor",
+    "crates/wglymr-core",
+    "crates/wglymr-document",
+    "crates/wglymr-interaction",
+    "crates/wglymr-view",
+    "crates/wglymr-render",
     "crates/wglymr-render-wgpu",
+    "crates/wglymr-app",
+    "crates/wglymr-runtime",
+    "crates/wglymr-frontend-web",
+    "crates/wglymr-color",
+    "crates/wglymr-font-assets",
+    "xtask",
 ]
+
+default-members = ["crates/wglymr-app"]
 
 [workspace.package]
 version = "0.1.0"

@@ -201,14 +201,12 @@ impl MsdfTextRenderer {
 
             let cached = if let Some(cached) = self.cache.get(&key) {
                 cached
+            } else if let Some(glyph) = self.atlas.get_glyph(key) {
+                self.cache.insert(glyph);
+                self.cache.get(&key).unwrap()
             } else {
-                if let Some(glyph) = self.atlas.get_glyph(key) {
-                    self.cache.insert(glyph);
-                    self.cache.get(&key).unwrap()
-                } else {
-                    x += font_size_px * 0.5;
-                    continue;
-                }
+                x += font_size_px * 0.5;
+                continue;
             };
 
             let pos = [x + cached.metrics.bearing_x, y - cached.metrics.bearing_y];

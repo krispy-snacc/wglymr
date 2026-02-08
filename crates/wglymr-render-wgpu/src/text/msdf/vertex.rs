@@ -69,6 +69,8 @@ impl QuadBuilder {
         }
     }
 
+    // Low-level graphics primitive - 8 params are acceptable for quad specification
+    #[allow(clippy::too_many_arguments)]
     pub fn add_quad(
         &mut self,
         screen_pos: [f32; 2],

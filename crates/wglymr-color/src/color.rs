@@ -80,7 +80,7 @@ impl Color {
     pub const WHITE: Color = Color::const_rgba(1.0, 1.0, 1.0, 1.0);
     pub const BLACK: Color = Color::const_rgba(0.0, 0.0, 0.0, 1.0);
     pub const TRANSPARENT: Color = Color::const_rgba(0.0, 0.0, 0.0, 0.0);
-    
+
     pub const NODE_BG: Color = Color::const_rgba(48.0 / 255.0, 48.0 / 255.0, 48.0 / 255.0, 1.0);
     pub const NODE_BORDER: Color = Color::const_rgba(0.0, 0.0, 0.0, 1.0);
     pub const TEXT_PRIMARY: Color = Color::const_rgba(1.0, 1.0, 1.0, 1.0);

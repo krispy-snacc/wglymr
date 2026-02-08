@@ -1,0 +1,10 @@
+[package]
+name = "wglymr-interaction"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wglymr-document = { path = "../wglymr-document" }
+wglymr-render = { path = "../wglymr-render" }
+wglymr-view = { path = "../wglymr-view" }
+glam = "0.29"

@@ -1,0 +1,13 @@
+[package]
+name = "wglymr-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wglymr-core = { path = "../wglymr-core" }
+wglymr-document = { path = "../wglymr-document" }
+wglymr-interaction = { path = "../wglymr-interaction" }
+wglymr-view = { path = "../wglymr-view" }
+wglymr-render = { path = "../wglymr-render" }
+wglymr-color = { path = "../wglymr-color" }
+glam = "0.29"

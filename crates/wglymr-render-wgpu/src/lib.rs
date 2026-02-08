@@ -6,6 +6,7 @@ mod pipeline;
 mod primitive;
 pub mod sdf;
 pub mod text;
+mod wgpu_draw_backend;
 
 pub use device::{GpuContext, create_gpu_context};
 pub use execute::execute_wgsl_f32;
@@ -15,6 +16,7 @@ pub use primitive::PrimitiveRenderer;
 pub use primitive::draw_grid;
 pub use sdf::{RoundedRect, SdfBatch, SdfRenderer, SdfVertex};
 pub use text::MsdfTextRenderer;
+pub use wgpu_draw_backend::WgpuDrawBackend;
 
 #[cfg(test)]
 mod tests {

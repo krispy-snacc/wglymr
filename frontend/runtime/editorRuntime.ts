@@ -9,7 +9,7 @@ async function initializeRuntime(): Promise<void> {
     if (isInitialized) return;
 
     try {
-        const wasm = await import("../wasm-pkg/wglymr_node_editor.js");
+        const wasm = await import("../wasm-pkg/wglymr_frontend_web.js");
         wasmModule = wasm;
 
         await wasm.default();

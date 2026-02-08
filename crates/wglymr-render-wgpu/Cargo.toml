@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 wgpu = "25.0"
 wglymr-color = { path = "../wglymr-color" }
+wglymr-render = { path = "../wglymr-render" }
 pollster = "0.3"
 bytemuck = { version = "1.14", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }

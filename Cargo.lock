@@ -277,16 +277,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
 
 [[package]]
-name = "console_error_panic_hook"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
-dependencies = [
- "cfg-if",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1726,6 +1716,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a28ac98ddc8b9274cb41bb4d9d4d5c425b6020c50c46f25559911905610b4a88"
 
 [[package]]
+name = "wglymr-app"
+version = "0.1.0"
+dependencies = [
+ "glam",
+ "wglymr-color",
+ "wglymr-core",
+ "wglymr-document",
+ "wglymr-interaction",
+ "wglymr-render",
+ "wglymr-view",
+]
+
+[[package]]
 name = "wglymr-color"
 version = "0.1.0"
 dependencies = [
@@ -1733,7 +1736,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "wglymr-graph"
+name = "wglymr-core"
 version = "0.1.0"
 dependencies = [
  "glam",
@@ -1742,18 +1745,40 @@ dependencies = [
 ]
 
 [[package]]
-name = "wglymr-node-editor"
+name = "wglymr-document"
+version = "0.1.0"
+
+[[package]]
+name = "wglymr-font-assets"
+version = "0.1.0"
+
+[[package]]
+name = "wglymr-frontend-web"
 version = "0.1.0"
 dependencies = [
- "console_error_panic_hook",
- "serde",
  "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "wglymr-color",
- "wglymr-render-wgpu",
+ "wglymr-runtime",
  "wgpu",
+]
+
+[[package]]
+name = "wglymr-interaction"
+version = "0.1.0"
+dependencies = [
+ "glam",
+ "wglymr-document",
+ "wglymr-render",
+ "wglymr-view",
+]
+
+[[package]]
+name = "wglymr-render"
+version = "0.1.0"
+dependencies = [
+ "wglymr-color",
 ]
 
 [[package]]
@@ -1766,7 +1791,34 @@ dependencies = [
  "serde",
  "serde_json",
  "wglymr-color",
+ "wglymr-render",
  "wgpu",
+]
+
+[[package]]
+name = "wglymr-runtime"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "wglymr-app",
+ "wglymr-document",
+ "wglymr-interaction",
+ "wglymr-render-wgpu",
+ "wglymr-view",
+ "wgpu",
+]
+
+[[package]]
+name = "wglymr-view"
+version = "0.1.0"
+dependencies = [
+ "glam",
+ "wglymr-color",
+ "wglymr-document",
+ "wglymr-render",
 ]
 
 [[package]]
@@ -2079,6 +2131,13 @@ name = "xml-rs"
 version = "0.8.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ae8337f8a065cfc972643663ea4279e04e7256de865aa66fe25cec5fb912d3f"
+
+[[package]]
+name = "xtask"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+]
 
 [[package]]
 name = "y4m"

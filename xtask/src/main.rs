@@ -126,7 +126,7 @@ fn web() -> Result<()> {
             "--target",
             "web",
             "--out-dir",
-            "pkg",
+            "../../frontend/wasm-pkg",
         ])
         .status()
         .context("Failed to execute wasm-pack - ensure wasm-pack is installed")?;
@@ -135,8 +135,8 @@ fn web() -> Result<()> {
         anyhow::bail!("wasm-pack build failed");
     }
 
-    println!("✓ Web frontend built successfully");
-    println!("  Output: crates/wglymr-frontend-web/pkg/");
+    println!("✓ WASM adapter built successfully");
+    println!("  Output: frontend/wasm-pkg/");
     Ok(())
 }
 
